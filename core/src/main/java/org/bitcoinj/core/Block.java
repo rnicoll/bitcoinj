@@ -75,6 +75,9 @@ public class Block extends Message {
     /** A value for difficultyTarget (nBits) that allows half of all possible hash solutions. Used in unit testing. */
     public static final long EASIEST_DIFFICULTY_TARGET = 0x207fFFFFL;
 
+	/** Bit used to indicate that a block contains an AuxPoW section, where the network supports AuxPoW */
+    public static final int BLOCK_FLAG_AUXPOW = (1 << 8);
+
     // Fields defined as part of the protocol format.
     private long version;
     private Sha256Hash prevBlockHash;
@@ -82,6 +85,9 @@ public class Block extends Message {
     private long time;
     private long difficultyTarget; // "nBits"
     private long nonce;
+
+	/** AuxPoW header element, if applicable. */
+	@Nullable private AuxPoW auxpow;
 
     // TODO: Get rid of all the direct accesses to this field. It's a long-since unnecessary holdover from the Dalvik days.
     /** If null, it means this object holds only the headers. */
@@ -132,6 +138,28 @@ public class Block extends Message {
     public Block(NetworkParameters params, byte[] payloadBytes, boolean parseLazy, boolean parseRetain, int length)
             throws ProtocolException {
         super(params, payloadBytes, 0, parseLazy, parseRetain, length);
+    }
+
+    /**
+     * Contruct a block object from the Bitcoin wire format. Used in the case of a block
+     * contained within another message (i.e. for AuxPoW header).
+     *
+     * @param params NetworkParameters object.
+     * @param payloadBytes Bitcoin protocol formatted byte array containing message content.
+     * @param offset The location of the first payload byte within the array.
+     * @param parent The message element which contains this block, maybe null for no parent.
+     * @param parseLazy Whether to perform a full parse immediately or delay until a read is requested.
+     * @param parseRetain Whether to retain the backing byte array for quick reserialization.  
+     * If true and the backing byte array is invalidated due to modification of a field then 
+     * the cached bytes may be repopulated and retained if the message is serialized again in the future.
+     * @param length The length of message if known.  Usually this is provided when deserializing of the wire
+     * as the length will be provided as part of the header.  If unknown then set to Message.UNKNOWN_LENGTH
+     * @throws ProtocolException
+     */
+    public Block(NetworkParameters params, byte[] payloadBytes, int offset, @Nullable Message parent, boolean parseLazy, boolean parseRetain, int length)
+            throws ProtocolException {
+        // TODO: Keep the parent
+        super(params, payloadBytes, offset, parseLazy, parseRetain, length);
     }
 
 
@@ -194,6 +222,14 @@ public class Block extends Message {
 
         hash = new Sha256Hash(Utils.reverseBytes(Utils.doubleDigest(payload, offset, cursor)));
 
+		if (this.params.isAuxPoWBlockVersion(this.version)) {
+			// The following is used in dogecoinj, but I don't think we necessarily need it
+			// payload.length >= 160) { // We have at least 2 headers in an Aux block. Workaround for StoredBlocks
+			this.auxpow = new AuxPoW(params, payload, cursor, this, parseLazy, parseRetain);
+		} else {
+			this.auxpow = null;
+		}
+
         headerParsed = true;
         headerBytesValid = parseRetain;
     }
@@ -202,8 +238,12 @@ public class Block extends Message {
         if (transactionsParsed)
             return;
 
-        cursor = offset + HEADER_SIZE;
-        optimalEncodingMessageSize = HEADER_SIZE;
+		if (null == this.auxpow) {
+			optimalEncodingMessageSize = HEADER_SIZE;
+		} else {
+			optimalEncodingMessageSize = HEADER_SIZE + auxpow.getOptimalEncodingMessageSize();
+		}
+		cursor = offset + optimalEncodingMessageSize;
         if (payload.length == cursor) {
             // This message is just a header, it has no transactions.
             transactionsParsed = true;

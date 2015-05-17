@@ -407,4 +407,11 @@ public abstract class NetworkParameters implements Serializable {
      * networks.
      */
     public abstract boolean hasMaxMoney();
+
+    /**
+     * Returns whether the given block version is one that supports AuxPoW AND
+     * has an AuxPoW header element. Not used for Bitcoin, but exists for blockchains
+     * which do.
+     */
+    public abstract boolean isAuxPoWBlockVersion(final long version);
 }

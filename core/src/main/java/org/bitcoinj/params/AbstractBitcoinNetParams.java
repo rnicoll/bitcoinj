@@ -120,4 +120,9 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
     public boolean hasMaxMoney() {
         return true;
     }
+
+    @Override
+    public boolean isAuxPoWBlockVersion(final long version) {
+        return false;
+    }
 }

@@ -91,7 +91,7 @@ public class CoinbaseBlockTest {
     /**
      * Returns the contents of the InputStream as a byte array.
      */
-    private byte[] getBytes(InputStream inputStream) throws IOException {
+    static byte[] getBytes(InputStream inputStream) throws IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
         int numberRead;
