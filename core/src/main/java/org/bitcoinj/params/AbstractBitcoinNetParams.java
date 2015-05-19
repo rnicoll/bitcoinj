@@ -37,6 +37,11 @@ import static com.google.common.base.Preconditions.checkState;
  * Parameters for Bitcoin-like networks.
  */
 public abstract class AbstractBitcoinNetParams extends NetworkParameters {
+    /**
+     * Scheme part for Bitcoin URIs.
+     */
+    public static final String BITCOIN_SCHEME = "bitcoin";
+
     private static final Logger log = LoggerFactory.getLogger(AbstractBitcoinNetParams.class);
 
     public AbstractBitcoinNetParams() {
@@ -114,6 +119,11 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
     @Override
     public Coin getMinNonDustOutput() {
         return Transaction.MIN_NONDUST_OUTPUT;
+    }
+
+    @Override
+    public String getUriScheme() {
+        return BITCOIN_SCHEME;
     }
 
     @Override

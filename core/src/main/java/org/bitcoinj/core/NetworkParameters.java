@@ -402,6 +402,11 @@ public abstract class NetworkParameters implements Serializable {
      */
     public abstract Coin getMinNonDustOutput();
 
+    /**
+     * Scheme part for URIs, for example "bitcoin".
+     */
+    public abstract String getUriScheme();
+
     /** Returns whether this network has a maximum number of coins (finite supply) or
      * not. Always returns true for Bitcoin, but exists to be overriden for other
      * networks.
