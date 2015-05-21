@@ -28,6 +28,7 @@ import org.bitcoinj.core.Utils;
 import org.bitcoinj.core.VerificationException;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
+import org.bitcoinj.utils.MonetaryFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,6 +120,11 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
     @Override
     public Coin getMinNonDustOutput() {
         return Transaction.MIN_NONDUST_OUTPUT;
+    }
+
+    @Override
+    public MonetaryFormat getMonetaryFormat() {
+        return new org.bitcoinj.utils.MonetaryFormat();
     }
 
     @Override

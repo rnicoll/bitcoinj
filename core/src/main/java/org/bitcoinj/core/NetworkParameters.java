@@ -26,6 +26,7 @@ import org.bitcoinj.params.*;
 import org.bitcoinj.script.*;
 import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
+import org.bitcoinj.utils.MonetaryFormat;
 
 import javax.annotation.*;
 import java.io.*;
@@ -401,6 +402,11 @@ public abstract class NetworkParameters implements Serializable {
      * most likely be rejected by the network.
      */
     public abstract Coin getMinNonDustOutput();
+
+    /**
+     * The monetary object for this currency.
+     */
+    public abstract MonetaryFormat getMonetaryFormat();
 
     /**
      * Scheme part for URIs, for example "bitcoin".
