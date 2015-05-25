@@ -224,7 +224,8 @@ public final class MonetaryFormat {
     }
 
     /**
-     * Configure currency code for given decimal separator shift. This configuration is not relevant for parsing.
+     * Configure currency code for given decimal separator shift. This
+     * configuration is not relevant for parsing.
      * 
      * @param codeShift
      *            decimal separator shift, see {@link #shift()}
@@ -237,6 +238,19 @@ public final class MonetaryFormat {
         if (this.codes != null)
             codes.putAll(this.codes);
         codes.put(codeShift, code);
+        return new MonetaryFormat(negativeSign, positiveSign, zeroDigit, decimalMark, minDecimals, decimalGroups,
+                shift, roundingMode, codes, codeSeparator, codePrefixed);
+    }
+
+    /**
+     * Configure currency code for decimal separator shifts, replacing the
+     * existing configuration. This configuration is not relevant for parsing.
+     *
+     * @param newCodes a map of shift values to matching code.
+     */
+    public MonetaryFormat replaceCodes(final Map<Integer, String> newCodes) {
+        final Map<Integer, String> codes = new HashMap<Integer, String>();
+        codes.putAll(newCodes);
         return new MonetaryFormat(negativeSign, positiveSign, zeroDigit, decimalMark, minDecimals, decimalGroups,
                 shift, roundingMode, codes, codeSeparator, codePrefixed);
     }
