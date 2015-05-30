@@ -21,7 +21,6 @@ import java.math.BigInteger;
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.Utils;
@@ -33,25 +32,56 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
+import java.io.ByteArrayOutputStream;
+import static org.bitcoinj.core.Coin.FIFTY_COINS;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptOpCodes;
 
 /**
  * Parameters for Bitcoin-like networks.
  */
-public abstract class AbstractBitcoinNetParams extends NetworkParameters {
+public abstract class AbstractBitcoinNetParams extends NetworkParameters<Block> {
     /**
      * Scheme part for Bitcoin URIs.
      */
     public static final String BITCOIN_SCHEME = "bitcoin";
 
     private static final Logger log = LoggerFactory.getLogger(AbstractBitcoinNetParams.class);
+    protected Block genesisBlock;
 
     public AbstractBitcoinNetParams() {
         super();
+        this.genesisBlock = createGenesis(this);
+    }
+
+    protected static Block createGenesis(final AbstractBitcoinNetParams params) {
+        final Block genesisBlock = new Block(params);
+        Transaction t = new Transaction(params);
+        try {
+            // A script containing the difficulty bits and the following message:
+            //
+            //   "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
+            byte[] bytes = Utils.HEX.decode
+                    ("04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73");
+            t.addInput(new TransactionInput(params, t, bytes));
+            ByteArrayOutputStream scriptPubKeyBytes = new ByteArrayOutputStream();
+            Script.writeBytes(scriptPubKeyBytes, Utils.HEX.decode
+                    ("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"));
+            scriptPubKeyBytes.write(ScriptOpCodes.OP_CHECKSIG);
+            t.addOutput(new TransactionOutput(params, t, FIFTY_COINS, scriptPubKeyBytes.toByteArray()));
+        } catch (Exception e) {
+            // Cannot happen.
+            throw new RuntimeException(e);
+        }
+        genesisBlock.addTransaction(t);
+        return genesisBlock;
     }
 
     @Override
     public void checkDifficultyTransitions(final StoredBlock storedPrev, final Block nextBlock,
-    	final BlockStore blockStore) throws VerificationException, BlockStoreException {
+    	final BlockStore<Block> blockStore) throws VerificationException, BlockStoreException {
         Block prev = storedPrev.getHeader();
 
         // Is this supposed to be a difficulty transition point?
@@ -113,6 +143,11 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
     }
 
     @Override
+    public Block getGenesisBlock() {
+        return genesisBlock;
+    }
+
+    @Override
     public Coin getMaxMoney() {
         return MAX_MONEY;
     }
@@ -135,5 +170,15 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
     @Override
     public boolean hasMaxMoney() {
         return true;
+    }
+
+    @Override
+    public Block cloneBlockAsHeader(final Block block) {
+        return block.cloneAsHeader();
+    }
+
+    @Override
+    public Block deserializeBlock(byte[] payload) {
+        return new Block(this, payload);
     }
 }

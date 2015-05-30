@@ -46,7 +46,7 @@ import static org.bitcoinj.core.Coin.*;
  * intended for unit testing and local app development purposes. Although this class contains some aliases for
  * them, you are encouraged to call the static get() methods on each specific params class directly.</p>
  */
-public abstract class NetworkParameters implements Serializable {
+public abstract class NetworkParameters<T extends Block> implements Serializable {
     /**
      * The protocol version this library implements.
      */
@@ -76,7 +76,6 @@ public abstract class NetworkParameters implements Serializable {
 
     // TODO: Seed nodes should be here as well.
 
-    protected Block genesisBlock;
     protected BigInteger maxTarget;
     protected int port;
     protected long packetMagic;  // Indicates message origin network and is used to seek to the next message when stream state is unknown.
@@ -109,30 +108,6 @@ public abstract class NetworkParameters implements Serializable {
 
     protected NetworkParameters() {
         alertSigningKey = SATOSHI_KEY;
-        genesisBlock = createGenesis(this);
-    }
-
-    private static Block createGenesis(NetworkParameters n) {
-        Block genesisBlock = new Block(n);
-        Transaction t = new Transaction(n);
-        try {
-            // A script containing the difficulty bits and the following message:
-            //
-            //   "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-            byte[] bytes = Utils.HEX.decode
-                    ("04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73");
-            t.addInput(new TransactionInput(n, t, bytes));
-            ByteArrayOutputStream scriptPubKeyBytes = new ByteArrayOutputStream();
-            Script.writeBytes(scriptPubKeyBytes, Utils.HEX.decode
-                    ("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"));
-            scriptPubKeyBytes.write(ScriptOpCodes.OP_CHECKSIG);
-            t.addOutput(new TransactionOutput(n, t, FIFTY_COINS, scriptPubKeyBytes.toByteArray()));
-        } catch (Exception e) {
-            // Cannot happen.
-            throw new RuntimeException(e);
-        }
-        genesisBlock.addTransaction(t);
-        return genesisBlock;
     }
 
     public static final int TARGET_TIMESPAN = 14 * 24 * 60 * 60;  // 2 weeks per difficulty cycle, on average.
@@ -255,7 +230,7 @@ public abstract class NetworkParameters implements Serializable {
      *
      * @throws VerificationException if the block's difficulty is not correct.
      */
-    public abstract void checkDifficultyTransitions(StoredBlock storedPrev, Block next, final BlockStore blockStore) throws VerificationException, BlockStoreException;
+    public abstract void checkDifficultyTransitions(StoredBlock storedPrev, T next, final BlockStore<T> blockStore) throws VerificationException, BlockStoreException;
 
     /**
      * Returns true if the block height is either not a checkpoint, or is a checkpoint and the hash matches.
@@ -303,9 +278,7 @@ public abstract class NetworkParameters implements Serializable {
      * and a message in the coinbase transaction. It says, <i>"The Times 03/Jan/2009 Chancellor on brink of second
      * bailout for banks"</i>.</p>
      */
-    public Block getGenesisBlock() {
-        return genesisBlock;
-    }
+    public abstract T getGenesisBlock();
 
     /** Default TCP port on which to connect to nodes. */
     public int getPort() {
@@ -420,4 +393,15 @@ public abstract class NetworkParameters implements Serializable {
      * networks.
      */
     public abstract boolean hasMaxMoney();
+
+    /**
+     * Clone just the header parts of a block (i.e. not the transactions).
+     */
+    public abstract T cloneBlockAsHeader(final T block);
+
+    /**
+     * Parse the given payload as a block and return it. For serialization use
+     * methods on the block itself.
+     */
+    public abstract T deserializeBlock(byte[] payload);
 }
