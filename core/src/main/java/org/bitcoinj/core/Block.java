@@ -99,7 +99,7 @@ public class Block extends Message {
     // Blocks can be encoded in a way that will use more bytes than is optimal (due to VarInts having multiple encodings)
     // MAX_BLOCK_SIZE must be compared to the optimal encoding, not the actual encoding, so when parsing, we keep track
     // of the size of the ideal encoding in addition to the actual message size (which Message needs)
-    private transient int optimalEncodingMessageSize;
+    protected transient int optimalEncodingMessageSize;
 
     /** Special case constructor, used for the genesis node, cloneAsHeader and unit tests. */
     Block(NetworkParameters params) {
@@ -221,10 +221,21 @@ public class Block extends Message {
     }
 
     protected void parseTransactions() throws ProtocolException {
+        parseTransactions(offset + HEADER_SIZE);
+    }
+
+    /**
+     * Parse transactions from the block.
+     * 
+     * @param transactionsOffset Offset of the transactions within the block.
+     * Useful for non-Bitcoin chains where the block header may not be a fixed
+     * size.
+     */
+    protected void parseTransactions(final int transactionsOffset) throws ProtocolException {
         if (transactionsParsed)
             return;
 
-        cursor = offset + HEADER_SIZE;
+        cursor = transactionsOffset;
         optimalEncodingMessageSize = HEADER_SIZE;
         if (payload.length == cursor) {
             // This message is just a header, it has no transactions.
