@@ -85,7 +85,7 @@ public class Block extends Message {
 
     // TODO: Get rid of all the direct accesses to this field. It's a long-since unnecessary holdover from the Dalvik days.
     /** If null, it means this object holds only the headers. */
-    @Nullable List<Transaction> transactions;
+    @Nullable List<Transaction<Block>> transactions;
 
     /** Stores the hash of the block. If null, getHash() will recalculate it. */
     private transient Sha256Hash hash;
@@ -102,7 +102,7 @@ public class Block extends Message {
     protected transient int optimalEncodingMessageSize;
 
     /** Special case constructor, used for the genesis node, cloneAsHeader and unit tests. */
-    Block(NetworkParameters params) {
+    public Block(NetworkParameters<?> params) {
         super(params);
         // Set up a few basic things. We are not complete after this though.
         version = 1;
@@ -114,7 +114,7 @@ public class Block extends Message {
     }
 
     /** Constructs a block object from the Bitcoin wire format. */
-    public Block(NetworkParameters params, byte[] payloadBytes) throws ProtocolException {
+    public Block(NetworkParameters<?> params, byte[] payloadBytes) throws ProtocolException {
         super(params, payloadBytes, 0, false, false, payloadBytes.length);
     }
 
@@ -129,7 +129,7 @@ public class Block extends Message {
      * as the length will be provided as part of the header.  If unknown then set to Message.UNKNOWN_LENGTH
      * @throws ProtocolException
      */
-    public Block(NetworkParameters params, byte[] payloadBytes, boolean parseLazy, boolean parseRetain, int length)
+    public Block(NetworkParameters<?> params, byte[] payloadBytes, boolean parseLazy, boolean parseRetain, int length)
             throws ProtocolException {
         super(params, payloadBytes, 0, parseLazy, parseRetain, length);
     }
@@ -151,7 +151,7 @@ public class Block extends Message {
      * as the length will be provided as part of the header.  If unknown then set to Message.UNKNOWN_LENGTH
      * @throws ProtocolException
      */
-    public Block(NetworkParameters params, byte[] payloadBytes, int offset, @Nullable Message parent, boolean parseLazy, boolean parseRetain, int length)
+    public Block(NetworkParameters<?> params, byte[] payloadBytes, int offset, @Nullable Message parent, boolean parseLazy, boolean parseRetain, int length)
             throws ProtocolException {
         // TODO: Keep the parent
         super(params, payloadBytes, offset, parseLazy, parseRetain, length);
@@ -168,8 +168,8 @@ public class Block extends Message {
      * @param nonce Arbitrary number to make the block hash lower than the target.
      * @param transactions List of transactions including the coinbase.
      */
-    public Block(NetworkParameters params, long version, Sha256Hash prevBlockHash, Sha256Hash merkleRoot, long time,
-                 long difficultyTarget, long nonce, List<Transaction> transactions) {
+    public Block(NetworkParameters<?> params, long version, Sha256Hash prevBlockHash, Sha256Hash merkleRoot, long time,
+                 long difficultyTarget, long nonce, List<Transaction<Block>> transactions) {
         super(params);
         this.version = version;
         this.prevBlockHash = prevBlockHash;
@@ -177,7 +177,7 @@ public class Block extends Message {
         this.time = time;
         this.difficultyTarget = difficultyTarget;
         this.nonce = nonce;
-        this.transactions = new LinkedList<Transaction>();
+        this.transactions = new LinkedList<Transaction<Block>>();
         this.transactions.addAll(transactions);
     }
 
@@ -246,7 +246,7 @@ public class Block extends Message {
 
         int numTransactions = (int) readVarInt();
         optimalEncodingMessageSize += VarInt.sizeOf(numTransactions);
-        transactions = new ArrayList<Transaction>(numTransactions);
+        transactions = new ArrayList<Transaction<Block>>(numTransactions);
         for (int i = 0; i < numTransactions; i++) {
             Transaction tx = new Transaction(params, payload, cursor, this, parseLazy, parseRetain, UNKNOWN_LENGTH);
             // Label the transaction as coming from the P2P network, so code that cares where we first saw it knows.
@@ -895,7 +895,7 @@ public class Block extends Message {
     void addTransaction(Transaction t, boolean runSanityChecks) {
         unCacheTransactions();
         if (transactions == null) {
-            transactions = new ArrayList<Transaction>();
+            transactions = new ArrayList<Transaction<Block>>();
         }
         t.setParent(this);
         if (runSanityChecks && transactions.size() == 0 && !t.isCoinBase())
@@ -989,7 +989,7 @@ public class Block extends Message {
     }
 
     /** Returns an immutable list of transactions held in this block, or null if this object represents just a header. */
-    public @Nullable List<Transaction> getTransactions() {
+    public @Nullable List<Transaction<Block>> getTransactions() {
         maybeParseTransactions();
         if (transactions == null)
             return null;
@@ -1007,7 +1007,7 @@ public class Block extends Message {
     @VisibleForTesting
     void addCoinbaseTransaction(byte[] pubKeyTo, Coin value) {
         unCacheTransactions();
-        transactions = new ArrayList<Transaction>();
+        transactions = new ArrayList<Transaction<Block>>();
         Transaction coinbase = new Transaction(params);
         // A real coinbase transaction has some stuff in the scriptSig like the extraNonce and difficulty. The
         // transactions are distinguished by every TX output going to a different key.

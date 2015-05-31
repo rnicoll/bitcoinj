@@ -24,33 +24,34 @@ import org.bitcoinj.core.WalletEventListener;
 import org.bitcoinj.script.Script;
 
 import java.util.List;
+import org.bitcoinj.core.Block;
 
 /**
  * An event listener that relays events to a native C++ object. A pointer to that object is stored in
  * this class using JNI on the native side, thus several instances of this can point to different actual
  * native implementations.
  */
-public class NativeWalletEventListener implements WalletEventListener {
+public class NativeWalletEventListener<T extends Block> implements WalletEventListener<T> {
     public long ptr;
 
     @Override
-    public native void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance);
+    public native void onCoinsReceived(Wallet<T> wallet, Transaction<T> tx, Coin prevBalance, Coin newBalance);
 
     @Override
-    public native void onCoinsSent(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance);
+    public native void onCoinsSent(Wallet<T> wallet, Transaction<T> tx, Coin prevBalance, Coin newBalance);
 
     @Override
-    public native void onReorganize(Wallet wallet);
+    public native void onReorganize(Wallet<T> wallet);
 
     @Override
-    public native void onTransactionConfidenceChanged(Wallet wallet, Transaction tx);
+    public native void onTransactionConfidenceChanged(Wallet<T> wallet, Transaction<T> tx);
 
     @Override
-    public native void onWalletChanged(Wallet wallet);
+    public native void onWalletChanged(Wallet<T> wallet);
 
     @Override
     public native void onKeysAdded(List<ECKey> keys);
 
     @Override
-    public native void onScriptsChanged(Wallet wallet, List<Script> scripts, boolean isAddingScripts);
+    public native void onScriptsChanged(Wallet<T> wallet, List<Script> scripts, boolean isAddingScripts);
 }

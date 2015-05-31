@@ -36,20 +36,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * should be interpreted. Whilst almost all addresses today are hashes of public keys, another (currently unsupported
  * type) can contain a hash of a script instead.</p>
  */
-public class Address extends VersionedChecksummedBytes {
+public class Address<T extends Block> extends VersionedChecksummedBytes {
     /**
      * An address is a RIPEMD160 hash of a public key, therefore is always 160 bits or 20 bytes.
      */
     public static final int LENGTH = 20;
 
-    private final NetworkParameters params;
+    private final NetworkParameters<T> params;
 
     /**
      * Construct an address from parameters, the address version, and the hash160 form. Example:<p>
      *
      * <pre>new Address(MainNetParams.get(), NetworkParameters.getAddressHeader(), Hex.decode("4a22c3c4cbb31e4d03b15550636762bda0baf85a"));</pre>
      */
-    public Address(NetworkParameters params, int version, byte[] hash160) throws WrongNetworkException {
+    public Address(NetworkParameters<T> params, int version, byte[] hash160) throws WrongNetworkException {
         super(version, hash160);
         checkNotNull(params);
         checkArgument(hash160.length == 20, "Addresses are 160-bit hashes, so you must provide 20 bytes");
@@ -59,9 +59,9 @@ public class Address extends VersionedChecksummedBytes {
     }
 
     /** Returns an Address that represents the given P2SH script hash. */
-    public static Address fromP2SHHash(NetworkParameters params, byte[] hash160) {
+    public static <T extends Block> Address fromP2SHHash(NetworkParameters<T> params, byte[] hash160) {
         try {
-            return new Address(params, params.getP2SHHeader(), hash160);
+            return new Address<T>(params, params.getP2SHHeader(), hash160);
         } catch (WrongNetworkException e) {
             throw new RuntimeException(e);  // Cannot happen.
         }

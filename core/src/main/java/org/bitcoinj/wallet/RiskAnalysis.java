@@ -20,6 +20,7 @@ import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.Wallet;
 
 import java.util.List;
+import org.bitcoinj.core.Block;
 
 /**
  * <p>A RiskAnalysis represents an analysis of how likely it is that a transaction (and its dependencies) represents a
@@ -40,7 +41,7 @@ public interface RiskAnalysis {
 
     public Result analyze();
 
-    public interface Analyzer {
-        public RiskAnalysis create(Wallet wallet, Transaction tx, List<Transaction> dependencies);
+    public interface Analyzer<T extends Block> {
+        public RiskAnalysis create(Wallet<T> wallet, Transaction<T> tx, List<Transaction<T>> dependencies);
     }
 }

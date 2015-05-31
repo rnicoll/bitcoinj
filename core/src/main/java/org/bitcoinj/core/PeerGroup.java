@@ -64,7 +64,7 @@ import static com.google.common.base.Preconditions.*;
  * of PeerGroup are safe to call from a UI thread as some may do network IO, 
  * but starting and stopping the service should be fine.</p>
  */
-public class PeerGroup implements TransactionBroadcaster {
+public class PeerGroup<T extends Block> implements TransactionBroadcaster {
     private static final Logger log = LoggerFactory.getLogger(PeerGroup.class);
 
     // All members in this class should be marked with final, volatile, @GuardedBy or a mix as appropriate to define
@@ -159,8 +159,8 @@ public class PeerGroup implements TransactionBroadcaster {
     };
 
     private int minBroadcastConnections = 0;
-    private final AbstractWalletEventListener walletEventListener = new AbstractWalletEventListener() {
-        @Override public void onScriptsChanged(Wallet wallet, List<Script> scripts, boolean isAddingScripts) {
+    private final AbstractWalletEventListener<T> walletEventListener = new AbstractWalletEventListener<T>() {
+        @Override public void onScriptsChanged(Wallet<T> wallet, List<Script> scripts, boolean isAddingScripts) {
             recalculateFastCatchupAndFilter(FilterRecalculateMode.SEND_IF_CHANGED);
         }
 
@@ -169,7 +169,7 @@ public class PeerGroup implements TransactionBroadcaster {
         }
 
         @Override
-        public void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
+        public void onCoinsReceived(Wallet<T> wallet, Transaction<T> tx, Coin prevBalance, Coin newBalance) {
             // We received a relevant transaction. We MAY need to recalculate and resend the Bloom filter, but only
             // if we have received a transaction that includes a relevant pay-to-pubkey output.
             //
@@ -192,7 +192,7 @@ public class PeerGroup implements TransactionBroadcaster {
             // and possibly retransmit if so. The recalculation process will end up including the tx hash into the
             // filter. In case (1), we need to retransmit the filter to the connected peers. In case (2), we don't
             // and shouldn't, we should just recalculate and cache the new filter for next time.
-            for (TransactionOutput output : tx.getOutputs()) {
+            for (TransactionOutput<T> output : tx.getOutputs()) {
                 if (output.getScriptPubKey().isSentToRawPubKey() && output.isMine(wallet)) {
                     if (tx.getConfidence().getConfidenceType() == TransactionConfidence.ConfidenceType.BUILDING)
                         recalculateFastCatchupAndFilter(FilterRecalculateMode.SEND_IF_CHANGED);
@@ -1324,7 +1324,7 @@ public class PeerGroup implements TransactionBroadcaster {
         }
     }
 
-    @Nullable private volatile ListenableScheduledFuture<?> vPingTask;
+    @Nullable private volatile ListenableScheduledFuture vPingTask;
 
     @SuppressWarnings("NonAtomicOperationOnVolatileField")
     private void setupPinging() {
@@ -1336,7 +1336,7 @@ public class PeerGroup implements TransactionBroadcaster {
             public void run() {
                 try {
                     if (getPingIntervalMsec() <= 0) {
-                        ListenableScheduledFuture<?> task = vPingTask;
+                        ListenableScheduledFuture<T> task = vPingTask;
                         if (task != null) {
                             task.cancel(false);
                             vPingTask = null;
@@ -1880,7 +1880,7 @@ public class PeerGroup implements TransactionBroadcaster {
         lock.lock();
         try {
             this.pingIntervalMsec = pingIntervalMsec;
-            ListenableScheduledFuture<?> task = vPingTask;
+            ListenableScheduledFuture<T> task = vPingTask;
             if (task != null)
                 task.cancel(false);
             setupPinging();

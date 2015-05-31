@@ -34,7 +34,7 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * StoredBlocks are put inside a {@link BlockStore} which saves them to memory or disk.
  */
-public class StoredBlock implements Serializable {
+public class StoredBlock<T extends Block> implements Serializable {
     private static final long serialVersionUID = -6097565241243701771L;
 
     // A BigInteger representing the total amount of work done so far on this chain. As of May 2011 it takes 8
@@ -43,11 +43,11 @@ public class StoredBlock implements Serializable {
     public static final byte[] EMPTY_BYTES = new byte[CHAIN_WORK_BYTES];
     public static final int COMPACT_SERIALIZED_SIZE = Block.HEADER_SIZE + CHAIN_WORK_BYTES + 4;  // for height
 
-    private Block header;
+    private T header;
     private BigInteger chainWork;
     private int height;
 
-    public StoredBlock(Block header, BigInteger chainWork, int height) {
+    public StoredBlock(T header, BigInteger chainWork, int height) {
         this.header = header;
         this.chainWork = chainWork;
         this.height = height;
@@ -56,7 +56,7 @@ public class StoredBlock implements Serializable {
     /**
      * The block header this object wraps. The referenced block object must not have any transactions in it.
      */
-    public Block getHeader() {
+    public T getHeader() {
         return header;
     }
 
@@ -77,7 +77,7 @@ public class StoredBlock implements Serializable {
     }
 
     /** Returns true if this objects chainWork is higher than the others. */
-    public boolean moreWorkThan(StoredBlock other) {
+    public boolean moreWorkThan(StoredBlock<T> other) {
         return chainWork.compareTo(other.chainWork) > 0;
     }
 
@@ -100,7 +100,7 @@ public class StoredBlock implements Serializable {
     /**
      * Creates a new StoredBlock, calculating the additional fields by adding to the values in this block.
      */
-    public StoredBlock build(Block block) throws VerificationException {
+    public StoredBlock<T> build(T block) throws VerificationException {
         // Stored blocks track total work done in this chain, because the canonical chain is the one that represents
         // the largest amount of work done not the tallest.
         BigInteger chainWork = this.chainWork.add(block.getWork());
@@ -135,7 +135,7 @@ public class StoredBlock implements Serializable {
     }
 
     /** De-serializes the stored block from a custom packed format. Used by {@link CheckpointManager}. */
-    public static StoredBlock deserializeCompact(NetworkParameters params, ByteBuffer buffer) throws ProtocolException {
+    public static <T extends Block> StoredBlock<T> deserializeCompact(NetworkParameters<T> params, ByteBuffer buffer) throws ProtocolException {
         byte[] chainWorkBytes = new byte[StoredBlock.CHAIN_WORK_BYTES];
         buffer.get(chainWorkBytes);
         BigInteger chainWork = new BigInteger(1, chainWorkBytes);

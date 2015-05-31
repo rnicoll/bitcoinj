@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.*;
 /**
  * This message is a reference or pointer to an output of a different transaction.
  */
-public class TransactionOutPoint extends ChildMessage implements Serializable {
+public class TransactionOutPoint<T extends Block> extends ChildMessage<T> implements Serializable {
     private static final long serialVersionUID = -6320880638344662579L;
 
     static final int MESSAGE_LENGTH = 36;
@@ -39,12 +39,12 @@ public class TransactionOutPoint extends ChildMessage implements Serializable {
 
     // This is not part of Bitcoin serialization. It's included in Java serialization.
     // It points to the connected transaction.
-    Transaction fromTx;
+    Transaction<T> fromTx;
 
     // The connected output.
-    private TransactionOutput connectedOutput;
+    private TransactionOutput<T> connectedOutput;
 
-    public TransactionOutPoint(NetworkParameters params, long index, @Nullable Transaction fromTx) {
+    public TransactionOutPoint(NetworkParameters<T> params, long index, @Nullable Transaction<T> fromTx) {
         super(params);
         this.index = index;
         if (fromTx != null) {
@@ -122,7 +122,7 @@ public class TransactionOutPoint extends ChildMessage implements Serializable {
      * if there is no such connection.
      */
     @Nullable
-    public TransactionOutput getConnectedOutput() {
+    public TransactionOutput<T> getConnectedOutput() {
         if (fromTx != null) {
             return fromTx.getOutputs().get((int) index);
         } else if (connectedOutput != null) {

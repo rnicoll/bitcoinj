@@ -21,13 +21,13 @@ import java.util.List;
 /**
  * Default no-op implementation of {@link BlockChainListener}.
  */
-public class AbstractBlockChainListener implements BlockChainListener {
+public class AbstractBlockChainListener<T extends Block> implements BlockChainListener<T> {
     @Override
     public void notifyNewBestBlock(StoredBlock block) throws VerificationException {
     }
 
     @Override
-    public void reorganize(StoredBlock splitPoint, List<StoredBlock> oldBlocks, List<StoredBlock> newBlocks) throws VerificationException {
+    public void reorganize(StoredBlock<T> splitPoint, List<StoredBlock<T>> oldBlocks, List<StoredBlock<T>> newBlocks) throws VerificationException {
     }
 
     @Override

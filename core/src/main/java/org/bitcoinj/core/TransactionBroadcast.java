@@ -35,12 +35,12 @@ import static com.google.common.base.Preconditions.checkState;
  * is defined as not reaching acceptance within a timeout period, or getting an explicit reject message from a peer
  * indicating that the transaction was not acceptable.
  */
-public class TransactionBroadcast {
+public class TransactionBroadcast<T extends Block> {
     private static final Logger log = LoggerFactory.getLogger(TransactionBroadcast.class);
 
-    private final SettableFuture<Transaction> future = SettableFuture.create();
+    private final SettableFuture<Transaction<T>> future = SettableFuture.create();
     private final PeerGroup peerGroup;
-    private final Transaction tx;
+    private final Transaction<T> tx;
     private int minConnections;
     private int numWaitingFor;
 
@@ -51,34 +51,34 @@ public class TransactionBroadcast {
     // Tracks which nodes sent us a reject message about this broadcast, if any. Useful for debugging.
     private Map<Peer, RejectMessage> rejects = Collections.synchronizedMap(new HashMap<Peer, RejectMessage>());
 
-    TransactionBroadcast(PeerGroup peerGroup, Transaction tx) {
+    TransactionBroadcast(PeerGroup peerGroup, Transaction<T> tx) {
         this.peerGroup = peerGroup;
         this.tx = tx;
         this.minConnections = Math.max(1, peerGroup.getMinBroadcastConnections());
     }
 
     // Only for mock broadcasts.
-    private TransactionBroadcast(Transaction tx) {
+    private TransactionBroadcast(Transaction<T> tx) {
         this.peerGroup = null;
         this.tx = tx;
     }
 
     @VisibleForTesting
-    public static TransactionBroadcast createMockBroadcast(Transaction tx, final SettableFuture<Transaction> future) {
+    public static <T extends Block> TransactionBroadcast createMockBroadcast(Transaction<T> tx, final SettableFuture<Transaction<T>> future) {
         return new TransactionBroadcast(tx) {
             @Override
-            public ListenableFuture<Transaction> broadcast() {
+            public ListenableFuture<Transaction<T>> broadcast() {
                 return future;
             }
 
             @Override
-            public ListenableFuture<Transaction> future() {
+            public ListenableFuture<Transaction<T>> future() {
                 return future;
             }
         };
     }
 
-    public ListenableFuture<Transaction> future() {
+    public ListenableFuture<Transaction<T>> future() {
         return future;
     }
 
@@ -106,7 +106,7 @@ public class TransactionBroadcast {
         }
     };
 
-    public ListenableFuture<Transaction> broadcast() {
+    public ListenableFuture<Transaction<T>> broadcast() {
         peerGroup.addEventListener(rejectionListener, Threading.SAME_THREAD);
         log.info("Waiting for {} peers required for broadcast, we have {} ...", minConnections, peerGroup.getConnectedPeers().size());
         peerGroup.waitForPeers(minConnections).addListener(new EnoughAvailablePeers(), Threading.SAME_THREAD);

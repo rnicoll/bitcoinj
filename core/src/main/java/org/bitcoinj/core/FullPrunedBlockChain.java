@@ -44,7 +44,7 @@ import static com.google.common.base.Preconditions.checkState;
  * serve the full block chain to other clients, but it nevertheless provides the same security guarantees as a regular
  * Satoshi client does.</p>
  */
-public class FullPrunedBlockChain extends AbstractBlockChain {
+public class FullPrunedBlockChain<T extends Block> extends AbstractBlockChain<T> {
     private static final Logger log = LoggerFactory.getLogger(FullPrunedBlockChain.class);
 
     /**
@@ -68,7 +68,7 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
      * Constructs a block chain connected to the given wallet and store. To obtain a {@link Wallet} you can construct
      * one from scratch, or you can deserialize a saved wallet from disk using {@link Wallet#loadFromFile(java.io.File)}
      */
-    public FullPrunedBlockChain(NetworkParameters params, Wallet wallet, FullPrunedBlockStore blockStore) throws BlockStoreException {
+    public FullPrunedBlockChain(NetworkParameters<T> params, Wallet wallet, FullPrunedBlockStore blockStore) throws BlockStoreException {
         this(Context.getOrCreate(params), wallet, blockStore);
     }
 
@@ -82,7 +82,7 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
     /**
      * See {@link #FullPrunedBlockChain(Context, Wallet, FullPrunedBlockStore)}
      */
-    public FullPrunedBlockChain(NetworkParameters params, FullPrunedBlockStore blockStore) throws BlockStoreException {
+    public FullPrunedBlockChain(NetworkParameters<T> params, FullPrunedBlockStore blockStore) throws BlockStoreException {
         this(Context.getOrCreate(params), blockStore);
     }
 
@@ -99,13 +99,13 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
     /**
      * See {@link #FullPrunedBlockChain(Context, List, FullPrunedBlockStore)}
      */
-    public FullPrunedBlockChain(NetworkParameters params, List<BlockChainListener> listeners,
+    public FullPrunedBlockChain(NetworkParameters<T> params, List<BlockChainListener> listeners,
                                 FullPrunedBlockStore blockStore) throws BlockStoreException {
         this(Context.getOrCreate(params), listeners, blockStore);
     }
 
     @Override
-    protected StoredBlock addToBlockStore(StoredBlock storedPrev, Block header, TransactionOutputChanges txOutChanges)
+    protected StoredBlock addToBlockStore(StoredBlock<T> storedPrev, T header, TransactionOutputChanges txOutChanges)
             throws BlockStoreException, VerificationException {
         StoredBlock newBlock = storedPrev.build(header);
         blockStore.put(newBlock, new StoredUndoableBlock(newBlock.getHeader().getHash(), txOutChanges));
@@ -113,7 +113,7 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
     }
 
     @Override
-    protected StoredBlock addToBlockStore(StoredBlock storedPrev, Block block)
+    protected StoredBlock addToBlockStore(StoredBlock<T> storedPrev, T block)
             throws BlockStoreException, VerificationException {
         StoredBlock newBlock = storedPrev.build(block);
         blockStore.put(newBlock, new StoredUndoableBlock(newBlock.getHeader().getHash(), block.transactions));
@@ -150,12 +150,12 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
     /**
      * A job submitted to the executor which verifies signatures.
      */
-    private static class Verifier implements Callable<VerificationException> {
-        final Transaction tx;
+    private static class Verifier<T extends Block> implements Callable<VerificationException> {
+        final Transaction<T> tx;
         final List<Script> prevOutScripts;
         final Set<VerifyFlag> verifyFlags;
 
-        public Verifier(final Transaction tx, final List<Script> prevOutScripts, final Set<VerifyFlag> verifyFlags) {
+        public Verifier(final Transaction<T> tx, final List<Script> prevOutScripts, final Set<VerifyFlag> verifyFlags) {
             this.tx = tx;
             this.prevOutScripts = prevOutScripts;
             this.verifyFlags = verifyFlags;
@@ -205,7 +205,7 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
     }
 
     @Override
-    protected TransactionOutputChanges connectTransactions(int height, Block block)
+    protected TransactionOutputChanges connectTransactions(int height, T block)
             throws VerificationException, BlockStoreException {
         checkState(lock.isHeldByCurrentThread());
         if (block.transactions == null)
@@ -243,7 +243,7 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
             }
             Coin totalFees = Coin.ZERO;
             Coin coinbaseValue = null;
-            for (final Transaction tx : block.transactions) {
+            for (final Transaction<T> tx : block.transactions) {
                 boolean isCoinBase = tx.isCoinBase();
                 Coin valueIn = Coin.ZERO;
                 Coin valueOut = Coin.ZERO;
@@ -252,7 +252,7 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
                     // For each input of the transaction remove the corresponding output from the set of unspent
                     // outputs.
                     for (int index = 0; index < tx.getInputs().size(); index++) {
-                        TransactionInput in = tx.getInputs().get(index);
+                        TransactionInput<T> in = tx.getInputs().get(index);
                         UTXO prevOut = blockStore.getTransactionOutput(in.getOutpoint().getHash(),
                                 in.getOutpoint().getIndex());
                         if (prevOut == null)
@@ -379,14 +379,14 @@ public class FullPrunedBlockChain extends AbstractBlockChain {
                 if (scriptVerificationExecutor.isShutdown())
                     scriptVerificationExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
                 List<Future<VerificationException>> listScriptVerificationResults = new ArrayList<Future<VerificationException>>(transactions.size());
-                for (final Transaction tx : transactions) {
+                for (final Transaction<T> tx : transactions) {
                     boolean isCoinBase = tx.isCoinBase();
                     Coin valueIn = Coin.ZERO;
                     Coin valueOut = Coin.ZERO;
                     final List<Script> prevOutScripts = new LinkedList<Script>();
                     if (!isCoinBase) {
                         for (int index = 0; index < tx.getInputs().size(); index++) {
-                            final TransactionInput in = tx.getInputs().get(index);
+                            final TransactionInput<T> in = tx.getInputs().get(index);
                             final UTXO prevOut = blockStore.getTransactionOutput(in.getOutpoint().getHash(),
                                     in.getOutpoint().getIndex());
                             if (prevOut == null)

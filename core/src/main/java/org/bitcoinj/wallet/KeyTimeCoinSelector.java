@@ -31,7 +31,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * A coin selector that takes all coins assigned to keys created before the given timestamp.
  * Used as part of the implementation of {@link Wallet#setKeyRotationTime(java.util.Date)}.
  */
-public class KeyTimeCoinSelector implements CoinSelector {
+public class KeyTimeCoinSelector<T extends Block> implements CoinSelector<T> {
     private static final Logger log = LoggerFactory.getLogger(KeyTimeCoinSelector.class);
 
     /** A number of inputs chosen to avoid hitting {@link org.bitcoinj.core.Transaction.MAX_STANDARD_TX_SIZE} */
@@ -48,11 +48,11 @@ public class KeyTimeCoinSelector implements CoinSelector {
     }
 
     @Override
-    public CoinSelection select(Coin target, List<TransactionOutput> candidates) {
+    public CoinSelection select(Coin target, List<TransactionOutput<T>> candidates) {
         try {
-            LinkedList<TransactionOutput> gathered = Lists.newLinkedList();
+            LinkedList<TransactionOutput<T>> gathered = Lists.newLinkedList();
             Coin valueGathered = Coin.ZERO;
-            for (TransactionOutput output : candidates) {
+            for (TransactionOutput<T> output : candidates) {
                 if (ignorePending && !isConfirmed(output))
                     continue;
                 // Find the key that controls output, assuming it's a regular pay-to-pubkey or pay-to-address output.

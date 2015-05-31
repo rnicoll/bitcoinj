@@ -30,7 +30,7 @@ import static com.google.common.base.Preconditions.*;
  * A TransactionOutput message contains a scriptPubKey that controls who is able to spend its value. It is a sub-part
  * of the Transaction message.
  */
-public class TransactionOutput extends ChildMessage implements Serializable {
+public class TransactionOutput<T extends Block> extends ChildMessage<T> implements Serializable {
     private static final Logger log = LoggerFactory.getLogger(TransactionOutput.class);
     private static final long serialVersionUID = -590332479859256824L;
 
@@ -56,7 +56,7 @@ public class TransactionOutput extends ChildMessage implements Serializable {
     /**
      * Deserializes a transaction output message. This is usually part of a transaction message.
      */
-    public TransactionOutput(NetworkParameters params, @Nullable Transaction parent, byte[] payload,
+    public TransactionOutput(NetworkParameters<T> params, @Nullable Transaction<T> parent, byte[] payload,
                              int offset) throws ProtocolException {
         super(params, payload, offset);
         setParent(parent);
@@ -75,7 +75,7 @@ public class TransactionOutput extends ChildMessage implements Serializable {
      * the cached bytes may be repopulated and retained if the message is serialized again in the future.
      * @throws ProtocolException
      */
-    public TransactionOutput(NetworkParameters params, @Nullable Transaction parent, byte[] payload, int offset,
+    public TransactionOutput(NetworkParameters<T> params, @Nullable Transaction<T> parent, byte[] payload, int offset,
                              boolean parseLazy, boolean parseRetain) throws ProtocolException {
         super(params, payload, offset, parent, parseLazy, parseRetain, UNKNOWN_LENGTH);
         availableForSpending = true;
@@ -86,7 +86,7 @@ public class TransactionOutput extends ChildMessage implements Serializable {
      * something like {@link Coin#valueOf(int, int)}. Typically you would use
      * {@link Transaction#addOutput(Coin, Address)} instead of creating a TransactionOutput directly.
      */
-    public TransactionOutput(NetworkParameters params, @Nullable Transaction parent, Coin value, Address to) {
+    public TransactionOutput(NetworkParameters<T> params, @Nullable Transaction<T> parent, Coin value, Address to) {
         this(params, parent, value, ScriptBuilder.createOutputScript(to).getProgram());
     }
 
@@ -95,11 +95,11 @@ public class TransactionOutput extends ChildMessage implements Serializable {
      * amount should be created with something like {@link Coin#valueOf(int, int)}. Typically you would use
      * {@link Transaction#addOutput(Coin, ECKey)} instead of creating an output directly.
      */
-    public TransactionOutput(NetworkParameters params, @Nullable Transaction parent, Coin value, ECKey to) {
+    public TransactionOutput(NetworkParameters<T> params, @Nullable Transaction<T> parent, Coin value, ECKey to) {
         this(params, parent, value, ScriptBuilder.createOutputScript(to).getProgram());
     }
 
-    public TransactionOutput(NetworkParameters params, @Nullable Transaction parent, Coin value, byte[] scriptBytes) {
+    public TransactionOutput(NetworkParameters<T> params, @Nullable Transaction<T> parent, Coin value, byte[] scriptBytes) {
         super(params);
         // Negative values obviously make no sense, except for -1 which is used as a sentinel value when calculating
         // SIGHASH_SINGLE signatures, so unfortunately we have to allow that here.
@@ -130,7 +130,7 @@ public class TransactionOutput extends ChildMessage implements Serializable {
      * @return an address made out of the public key hash
      */
     @Nullable
-    public Address getAddressFromP2PKHScript(NetworkParameters networkParameters) throws ScriptException{
+    public Address getAddressFromP2PKHScript(NetworkParameters<T> networkParameters) throws ScriptException{
         if (getScriptPubKey().isSentToAddress())
             return getScriptPubKey().getToAddress(networkParameters);
 
@@ -150,7 +150,7 @@ public class TransactionOutput extends ChildMessage implements Serializable {
      * @return an address that belongs to the redeem script
      */
     @Nullable
-    public Address getAddressFromP2SH(NetworkParameters networkParameters) throws ScriptException{
+    public Address getAddressFromP2SH(NetworkParameters<T> networkParameters) throws ScriptException{
         if (getScriptPubKey().isPayToScriptHash())
             return getScriptPubKey().getToAddress(networkParameters);
 

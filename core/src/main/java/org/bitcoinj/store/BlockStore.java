@@ -16,6 +16,7 @@
 
 package org.bitcoinj.store;
 
+import org.bitcoinj.core.Block;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.StoredBlock;
@@ -30,13 +31,13 @@ import org.bitcoinj.core.StoredBlock;
  *
  * BlockStores are thread safe.
  */
-public interface BlockStore {
+public interface BlockStore<T extends Block> {
     /**
      * Saves the given block header+extra data. The key isn't specified explicitly as it can be calculated from the
      * StoredBlock directly. Can throw if there is a problem with the underlying storage layer such as running out of
      * disk space.
      */
-    void put(StoredBlock block) throws BlockStoreException;
+    void put(StoredBlock<T> block) throws BlockStoreException;
 
     /**
      * Returns the StoredBlock given a hash. The returned values block.getHash() method will be equal to the
@@ -50,12 +51,12 @@ public interface BlockStore {
      * or perhaps {@link org.bitcoinj.core.BlockChain#getBestChainHeight()} which will run in constant time and
      * not take any heavyweight locks.
      */
-    StoredBlock getChainHead() throws BlockStoreException;
+    StoredBlock<T> getChainHead() throws BlockStoreException;
 
     /**
      * Sets the {@link StoredBlock} that represents the top of the chain of greatest total work.
      */
-    void setChainHead(StoredBlock chainHead) throws BlockStoreException;
+    void setChainHead(StoredBlock<T> chainHead) throws BlockStoreException;
     
     /** Closes the store. */
     void close() throws BlockStoreException;
@@ -64,5 +65,5 @@ public interface BlockStore {
      * Get the {@link org.bitcoinj.core.NetworkParameters} of this store.
      * @return The network params.
      */
-    NetworkParameters getParams();
+    NetworkParameters<T> getParams();
 }

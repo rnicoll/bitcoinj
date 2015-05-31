@@ -168,7 +168,7 @@ public abstract class AbstractFullPrunedBlockChainTest {
         // Build some blocks on genesis block to create a spendable output
         Block rollingBlock = params.getGenesisBlock().createNextBlockWithCoinbase(outKey.getPubKey());
         chain.add(rollingBlock);
-        TransactionOutPoint spendableOutput = new TransactionOutPoint(params, 0, rollingBlock.getTransactions().get(0).getHash());
+        TransactionOutPoint<Block> spendableOutput = new TransactionOutPoint<Block>(params, 0, rollingBlock.getTransactions().get(0).getHash());
         byte[] spendableOutputScriptPubKey = rollingBlock.getTransactions().get(0).getOutputs().get(0).getScriptBytes();
         for (int i = 1; i < params.getSpendableCoinbaseDepth(); i++) {
             rollingBlock = rollingBlock.createNextBlockWithCoinbase(outKey.getPubKey());
@@ -241,8 +241,8 @@ public abstract class AbstractFullPrunedBlockChainTest {
         // Build some blocks on genesis block to create a spendable output
         Block rollingBlock = params.getGenesisBlock().createNextBlockWithCoinbase(outKey.getPubKey());
         chain.add(rollingBlock);
-        Transaction transaction = rollingBlock.getTransactions().get(0);
-        TransactionOutPoint spendableOutput = new TransactionOutPoint(params, 0, transaction.getHash());
+        Transaction<Block> transaction = rollingBlock.getTransactions().get(0);
+        TransactionOutPoint<Block> spendableOutput = new TransactionOutPoint<Block>(params, 0, transaction.getHash());
         byte[] spendableOutputScriptPubKey = transaction.getOutputs().get(0).getScriptBytes();
         for (int i = 1; i < params.getSpendableCoinbaseDepth(); i++) {
             rollingBlock = rollingBlock.createNextBlockWithCoinbase(outKey.getPubKey());
@@ -291,8 +291,8 @@ public abstract class AbstractFullPrunedBlockChainTest {
         // Build some blocks on genesis block to create a spendable output.
         Block rollingBlock = params.getGenesisBlock().createNextBlockWithCoinbase(outKey.getPubKey());
         chain.add(rollingBlock);
-        Transaction transaction = rollingBlock.getTransactions().get(0);
-        TransactionOutPoint spendableOutput = new TransactionOutPoint(params, 0, transaction.getHash());
+        Transaction<Block> transaction = rollingBlock.getTransactions().get(0);
+        TransactionOutPoint<Block> spendableOutput = new TransactionOutPoint(params, 0, transaction.getHash());
         byte[] spendableOutputScriptPubKey = transaction.getOutputs().get(0).getScriptBytes();
         for (int i = 1; i < params.getSpendableCoinbaseDepth(); i++) {
             rollingBlock = rollingBlock.createNextBlockWithCoinbase(outKey.getPubKey());
@@ -301,7 +301,7 @@ public abstract class AbstractFullPrunedBlockChainTest {
         rollingBlock = rollingBlock.createNextBlock(null);
 
         // Create 1 BTC spend to a key in this wallet (to ourselves).
-        Wallet wallet = new Wallet(params);
+        Wallet<Block> wallet = new Wallet<Block>(params);
         assertEquals("Available balance is incorrect", Coin.ZERO, wallet.getBalance(Wallet.BalanceType.AVAILABLE));
         assertEquals("Estimated balance is incorrect", Coin.ZERO, wallet.getBalance(Wallet.BalanceType.ESTIMATED));
 
@@ -309,7 +309,7 @@ public abstract class AbstractFullPrunedBlockChainTest {
         ECKey toKey = wallet.freshReceiveKey();
         Coin amount = Coin.valueOf(100000000);
 
-        Transaction t = new Transaction(params);
+        Transaction<Block> t = new Transaction<Block>(params);
         t.addOutput(new TransactionOutput(params, t, amount, toKey));
         t.addSignedInput(spendableOutput, new Script(spendableOutputScriptPubKey), outKey);
         rollingBlock.addTransaction(t);
@@ -328,7 +328,7 @@ public abstract class AbstractFullPrunedBlockChainTest {
         // There should be one pending tx (our spend).
         assertEquals("Wrong number of PENDING.4", 1, wallet.getPoolSize(WalletTransaction.Pool.PENDING));
         Coin totalPendingTxAmount = Coin.ZERO;
-        for (Transaction tx : wallet.getPendingTransactions()) {
+        for (Transaction<Block> tx : wallet.getPendingTransactions()) {
             totalPendingTxAmount = totalPendingTxAmount.add(tx.getValueSentToMe(wallet));
         }
 

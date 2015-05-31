@@ -321,12 +321,12 @@ public class BloomFilter extends Message {
         return filteredBlock;
     }
 
-    public synchronized boolean applyAndUpdate(Transaction tx) {
+    public synchronized <T extends Block> boolean applyAndUpdate(Transaction<T> tx) {
         if (contains(tx.getHash().getBytes()))
             return true;
         boolean found = false;
         BloomUpdate flag = getUpdateFlag();
-        for (TransactionOutput output : tx.getOutputs()) {
+        for (TransactionOutput<T> output : tx.getOutputs()) {
             Script script = output.getScriptPubKey();
             for (ScriptChunk chunk : script.getChunks()) {
                 if (!chunk.isPushData())
@@ -340,7 +340,7 @@ public class BloomFilter extends Message {
             }
         }
         if (found) return true;
-        for (TransactionInput input : tx.getInputs()) {
+        for (TransactionInput<T> input : tx.getInputs()) {
             if (contains(input.getOutpoint().bitcoinSerialize())) {
                 return true;
             }

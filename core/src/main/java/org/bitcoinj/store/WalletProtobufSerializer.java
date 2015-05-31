@@ -134,7 +134,7 @@ public class WalletProtobufSerializer {
      * Converts the given wallet to the object representation of the protocol buffers. This can be modified, or
      * additional data fields set, before serialization takes place.
      */
-    public Protos.Wallet walletToProto(Wallet wallet) {
+    public Protos.Wallet walletToProto(Wallet<?> wallet) {
         Protos.Wallet.Builder walletBuilder = Protos.Wallet.newBuilder();
         walletBuilder.setNetworkIdentifier(wallet.getNetworkParameters().getId());
         if (wallet.getDescription() != null) {
@@ -212,7 +212,7 @@ public class WalletProtobufSerializer {
         return walletBuilder.build();
     }
 
-    private static void populateExtensions(Wallet wallet, Protos.Wallet.Builder walletBuilder) {
+    private static void populateExtensions(Wallet<?> wallet, Protos.Wallet.Builder walletBuilder) {
         for (WalletExtension extension : wallet.getExtensions().values()) {
             Protos.Extension.Builder proto = Protos.Extension.newBuilder();
             proto.setId(extension.getWalletExtensionID());
@@ -222,8 +222,8 @@ public class WalletProtobufSerializer {
         }
     }
 
-    private static Protos.Transaction makeTxProto(WalletTransaction wtx) {
-        Transaction tx = wtx.getTransaction();
+    private static <T extends Block> Protos.Transaction makeTxProto(WalletTransaction<T> wtx) {
+        Transaction<T> tx = wtx.getTransaction();
         Protos.Transaction.Builder txBuilder = Protos.Transaction.newBuilder();
         
         txBuilder.setPool(getProtoPool(wtx))
@@ -239,7 +239,7 @@ public class WalletProtobufSerializer {
         }
         
         // Handle inputs.
-        for (TransactionInput input : tx.getInputs()) {
+        for (TransactionInput<T> input : tx.getInputs()) {
             Protos.TransactionInput.Builder inputBuilder = Protos.TransactionInput.newBuilder()
                 .setScriptBytes(ByteString.copyFrom(input.getScriptBytes()))
                 .setTransactionOutPointHash(hashToByteString(input.getOutpoint().getHash()))
@@ -252,11 +252,11 @@ public class WalletProtobufSerializer {
         }
         
         // Handle outputs.
-        for (TransactionOutput output : tx.getOutputs()) {
+        for (TransactionOutput<T> output : tx.getOutputs()) {
             Protos.TransactionOutput.Builder outputBuilder = Protos.TransactionOutput.newBuilder()
                 .setScriptBytes(ByteString.copyFrom(output.getScriptBytes()))
                 .setValue(output.getValue().value);
-            final TransactionInput spentBy = output.getSpentBy();
+            final TransactionInput<T> spentBy = output.getSpentBy();
             if (spentBy != null) {
                 Sha256Hash spendingHash = spentBy.getParentTransaction().getHash();
                 int spentByTransactionIndex = spentBy.getParentTransaction().getInputs().indexOf(spentBy);
@@ -608,8 +608,8 @@ public class WalletProtobufSerializer {
         txMap.put(txProto.getHash(), tx);
     }
 
-    private WalletTransaction connectTransactionOutputs(org.bitcoinj.wallet.Protos.Transaction txProto) throws UnreadableWalletException {
-        Transaction tx = txMap.get(txProto.getHash());
+    private <T extends Block> WalletTransaction<T> connectTransactionOutputs(org.bitcoinj.wallet.Protos.Transaction txProto) throws UnreadableWalletException {
+        Transaction<T> tx = txMap.get(txProto.getHash());
         final WalletTransaction.Pool pool;
         switch (txProto.getPool()) {
             case DEAD: pool = WalletTransaction.Pool.DEAD; break;
@@ -628,7 +628,7 @@ public class WalletProtobufSerializer {
                 throw new UnreadableWalletException("Unknown transaction pool: " + txProto.getPool());
         }
         for (int i = 0 ; i < tx.getOutputs().size() ; i++) {
-            TransactionOutput output = tx.getOutputs().get(i);
+            TransactionOutput<T> output = tx.getOutputs().get(i);
             final Protos.TransactionOutput transactionOutput = txProto.getTransactionOutput(i);
             if (transactionOutput.hasSpentByTransactionHash()) {
                 final ByteString spentByTransactionHash = transactionOutput.getSpentByTransactionHash();

@@ -24,10 +24,10 @@ import java.util.*;
  * <p>A FilteredBlock is used to relay a block with its transactions filtered using a {@link BloomFilter}. It consists
  * of the block header and a {@link PartialMerkleTree} which contains the transactions which matched the filter.</p>
  */
-public class FilteredBlock extends Message {
+public class FilteredBlock<T extends Block> extends Message<T> {
     /** The protocol version at which Bloom filtering started to be supported. */
     public static final int MIN_PROTOCOL_VERSION = 70000;
-    private Block header;
+    private T header;
 
     private PartialMerkleTree merkleTree;
     private List<Sha256Hash> cachedTransactionHashes = null;
@@ -36,11 +36,11 @@ public class FilteredBlock extends Message {
     // These were relayed as a part of the filteredblock getdata, ie likely weren't previously received as loose transactions
     private Map<Sha256Hash, Transaction> associatedTransactions = new HashMap<Sha256Hash, Transaction>();
     
-    public FilteredBlock(NetworkParameters params, byte[] payloadBytes) throws ProtocolException {
+    public FilteredBlock(NetworkParameters<T> params, byte[] payloadBytes) throws ProtocolException {
         super(params, payloadBytes, 0);
     }
 
-    public FilteredBlock(NetworkParameters params, Block header, PartialMerkleTree pmt) {
+    public FilteredBlock(NetworkParameters<T> params, T header, PartialMerkleTree pmt) {
         super(params);
         this.header = header;
         this.merkleTree = pmt;
@@ -59,7 +59,7 @@ public class FilteredBlock extends Message {
     void parse() throws ProtocolException {
         byte[] headerBytes = new byte[Block.HEADER_SIZE];
         System.arraycopy(payload, 0, headerBytes, 0, Block.HEADER_SIZE);
-        header = new Block(params, headerBytes);
+        header = params.deserializeBlock(headerBytes);
         
         merkleTree = new PartialMerkleTree(params, payload, Block.HEADER_SIZE);
         
@@ -90,8 +90,8 @@ public class FilteredBlock extends Message {
     /**
      * Gets a copy of the block header
      */
-    public Block getBlockHeader() {
-        return header.cloneAsHeader();
+    public T getBlockHeader() {
+        return params.cloneBlockAsHeader(header);
     }
     
     /** Gets the hash of the block represented in this Filtered Block */

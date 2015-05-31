@@ -32,9 +32,9 @@ import java.util.List;
  * choice to use for programs that have limited resources as it won't verify transactions signatures or attempt to store
  * all of the block chain. Really, this class should be called SPVBlockChain but for backwards compatibility it is not.
  */
-public class BlockChain extends AbstractBlockChain {
+public class BlockChain<T extends Block> extends AbstractBlockChain<T> {
     /** Keeps a map of block hashes to StoredBlocks. */
-    protected final BlockStore blockStore;
+    protected final BlockStore<T> blockStore;
 
     /**
      * <p>Constructs a BlockChain connected to the given wallet and store. To obtain a {@link Wallet} you can construct
@@ -45,13 +45,13 @@ public class BlockChain extends AbstractBlockChain {
      * {@link org.bitcoinj.store.MemoryBlockStore} if you want to hold all headers in RAM and don't care about
      * disk serialization (this is rare).</p>
      */
-    public BlockChain(Context context, Wallet wallet, BlockStore blockStore) throws BlockStoreException {
+    public BlockChain(Context context, Wallet wallet, BlockStore<T> blockStore) throws BlockStoreException {
         this(context, new ArrayList<BlockChainListener>(), blockStore);
         addWallet(wallet);
     }
 
     /** See {@link #BlockChain(Context, Wallet, BlockStore)}} */
-    public BlockChain(NetworkParameters params, Wallet wallet, BlockStore blockStore) throws BlockStoreException {
+    public BlockChain(NetworkParameters<T> params, Wallet wallet, BlockStore<T> blockStore) throws BlockStoreException {
         this(Context.getOrCreate(params), wallet, blockStore);
     }
 
@@ -59,30 +59,30 @@ public class BlockChain extends AbstractBlockChain {
      * Constructs a BlockChain that has no wallet at all. This is helpful when you don't actually care about sending
      * and receiving coins but rather, just want to explore the network data structures.
      */
-    public BlockChain(Context context, BlockStore blockStore) throws BlockStoreException {
+    public BlockChain(Context context, BlockStore<T> blockStore) throws BlockStoreException {
         this(context, new ArrayList<BlockChainListener>(), blockStore);
     }
 
     /** See {@link #BlockChain(Context, BlockStore)} */
-    public BlockChain(NetworkParameters params, BlockStore blockStore) throws BlockStoreException {
+    public BlockChain(NetworkParameters<T> params, BlockStore<T> blockStore) throws BlockStoreException {
         this(params, new ArrayList<BlockChainListener>(), blockStore);
     }
 
     /**
      * Constructs a BlockChain connected to the given list of listeners and a store.
      */
-    public BlockChain(Context params, List<BlockChainListener> wallets, BlockStore blockStore) throws BlockStoreException {
+    public BlockChain(Context params, List<BlockChainListener> wallets, BlockStore<T> blockStore) throws BlockStoreException {
         super(params, wallets, blockStore);
         this.blockStore = blockStore;
     }
 
     /** See {@link #BlockChain(Context, List, BlockStore)} */
-    public BlockChain(NetworkParameters params, List<BlockChainListener> wallets, BlockStore blockStore) throws BlockStoreException {
+    public BlockChain(NetworkParameters<T> params, List<BlockChainListener> wallets, BlockStore<T> blockStore) throws BlockStoreException {
         this(Context.getOrCreate(params), wallets, blockStore);
     }
 
     @Override
-    protected StoredBlock addToBlockStore(StoredBlock storedPrev, Block blockHeader, TransactionOutputChanges txOutChanges)
+    protected StoredBlock addToBlockStore(StoredBlock<T> storedPrev, T blockHeader, TransactionOutputChanges txOutChanges)
             throws BlockStoreException, VerificationException {
         StoredBlock newBlock = storedPrev.build(blockHeader);
         blockStore.put(newBlock);
@@ -90,7 +90,7 @@ public class BlockChain extends AbstractBlockChain {
     }
     
     @Override
-    protected StoredBlock addToBlockStore(StoredBlock storedPrev, Block blockHeader)
+    protected StoredBlock addToBlockStore(StoredBlock<T> storedPrev, T blockHeader)
             throws BlockStoreException, VerificationException {
         StoredBlock newBlock = storedPrev.build(blockHeader);
         blockStore.put(newBlock);

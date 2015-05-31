@@ -24,24 +24,24 @@ import java.util.List;
 /**
  * Convenience implementation of {@link WalletEventListener}.
  */
-public abstract class AbstractWalletEventListener extends AbstractKeyChainEventListener implements WalletEventListener {
+public abstract class AbstractWalletEventListener<T extends Block> extends AbstractKeyChainEventListener implements WalletEventListener<T> {
     @Override
-    public void onCoinsReceived(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
+    public void onCoinsReceived(Wallet<T> wallet, Transaction<T> tx, Coin prevBalance, Coin newBalance) {
         onChange();
     }
 
     @Override
-    public void onCoinsSent(Wallet wallet, Transaction tx, Coin prevBalance, Coin newBalance) {
+    public void onCoinsSent(Wallet<T> wallet, Transaction<T> tx, Coin prevBalance, Coin newBalance) {
         onChange();
     }
 
     @Override
-    public void onReorganize(Wallet wallet) {
+    public void onReorganize(Wallet<T> wallet) {
         onChange();
     }
 
     @Override
-    public void onTransactionConfidenceChanged(Wallet wallet, Transaction tx) {
+    public void onTransactionConfidenceChanged(Wallet<T> wallet, Transaction<T> tx) {
         onChange();
     }
 
@@ -51,12 +51,12 @@ public abstract class AbstractWalletEventListener extends AbstractKeyChainEventL
     }
 
     @Override
-    public void onScriptsChanged(Wallet wallet, List<Script> scripts, boolean isAddingScripts) {
+    public void onScriptsChanged(Wallet<T> wallet, List<Script> scripts, boolean isAddingScripts) {
         onChange();
     }
 
     @Override
-    public void onWalletChanged(Wallet wallet) {
+    public void onWalletChanged(Wallet<T> wallet) {
         onChange();
     }
 

@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * A filtering coin selector delegates to another coin selector, but won't select outputs spent by the given transactions.
  */
-public class FilteringCoinSelector implements CoinSelector {
+public class FilteringCoinSelector<T extends Block> implements CoinSelector<T> {
     protected CoinSelector delegate;
     protected HashSet<TransactionOutPoint> spent = new HashSet<TransactionOutPoint>();
 
@@ -34,17 +34,17 @@ public class FilteringCoinSelector implements CoinSelector {
         this.delegate = delegate;
     }
 
-    public void excludeOutputsSpentBy(Transaction tx) {
+    public void excludeOutputsSpentBy(Transaction<T> tx) {
         for (TransactionInput input : tx.getInputs()) {
             spent.add(input.getOutpoint());
         }
     }
 
     @Override
-    public CoinSelection select(Coin target, List<TransactionOutput> candidates) {
-        Iterator<TransactionOutput> iter = candidates.iterator();
+    public CoinSelection select(Coin target, List<TransactionOutput<T>> candidates) {
+        Iterator<TransactionOutput<T>> iter = candidates.iterator();
         while (iter.hasNext()) {
-            TransactionOutput output = iter.next();
+            TransactionOutput<T> output = iter.next();
             if (spent.contains(output.getOutPointFor())) iter.remove();
         }
         return delegate.select(target, candidates);

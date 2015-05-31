@@ -36,13 +36,14 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkState;
+import org.bitcoinj.core.Block;
 
 /**
  * <p>The default risk analysis. Currently, it only is concerned with whether a tx/dependency is non-final or not, and
  * whether a tx/dependency violates the dust rules. Outside of specialised protocols you should not encounter non-final
  * transactions.</p>
  */
-public class DefaultRiskAnalysis implements RiskAnalysis {
+public class DefaultRiskAnalysis<T extends Block> implements RiskAnalysis {
     private static final Logger log = LoggerFactory.getLogger(DefaultRiskAnalysis.class);
 
     /**
@@ -52,15 +53,15 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
      */
     public static final Coin MIN_ANALYSIS_NONDUST_OUTPUT = Coin.valueOf(546);
 
-    protected final Transaction tx;
-    protected final List<Transaction> dependencies;
-    protected final @Nullable Wallet wallet;
+    protected final Transaction<T> tx;
+    protected final List<Transaction<T>> dependencies;
+    protected final @Nullable Wallet<T> wallet;
 
-    private Transaction nonStandard;
-    protected Transaction nonFinal;
+    private Transaction<T> nonStandard;
+    protected Transaction<T> nonFinal;
     protected boolean analyzed;
 
-    private DefaultRiskAnalysis(Wallet wallet, Transaction tx, List<Transaction> dependencies) {
+    private DefaultRiskAnalysis(Wallet<T> wallet, Transaction<T> tx, List<Transaction<T>> dependencies) {
         this.tx = tx;
         this.dependencies = dependencies;
         this.wallet = wallet;
@@ -124,14 +125,14 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
      *
      * <p>Note that this method currently only implements a minimum of checks. More to be added later.</p>
      */
-    public static RuleViolation isStandard(Transaction tx) {
+    public static <T extends Block> RuleViolation isStandard(Transaction<T> tx) {
         // TODO: Finish this function off.
         if (tx.getVersion() > 1 || tx.getVersion() < 1) {
             log.warn("TX considered non-standard due to unknown version number {}", tx.getVersion());
             return RuleViolation.VERSION;
         }
 
-        final List<TransactionOutput> outputs = tx.getOutputs();
+        final List<TransactionOutput<T>> outputs = tx.getOutputs();
         for (int i = 0; i < outputs.size(); i++) {
             TransactionOutput output = outputs.get(i);
             RuleViolation violation = isOutputStandard(output);
@@ -141,7 +142,7 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
             }
         }
 
-        final List<TransactionInput> inputs = tx.getInputs();
+        final List<TransactionInput<T>> inputs = tx.getInputs();
         for (int i = 0; i < inputs.size(); i++) {
             TransactionInput input = inputs.get(i);
             RuleViolation violation = isInputStandard(input);
@@ -157,7 +158,7 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
     /**
      * Checks the output to see if the script violates a standardness rule. Not complete.
      */
-    public static RuleViolation isOutputStandard(TransactionOutput output) {
+    public static <T extends Block> RuleViolation isOutputStandard(TransactionOutput<T> output) {
         if (output.getValue().compareTo(MIN_ANALYSIS_NONDUST_OUTPUT) < 0)
             return RuleViolation.DUST;
         for (ScriptChunk chunk : output.getScriptPubKey().getChunks()) {
@@ -168,7 +169,7 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
     }
 
     /** Checks if the given input passes some of the AreInputsStandard checks. Not complete. */
-    public static RuleViolation isInputStandard(TransactionInput input) {
+    public static <T extends Block> RuleViolation isInputStandard(TransactionInput<T> input) {
         for (ScriptChunk chunk : input.getScriptSig().getChunks()) {
             if (chunk.data != null && !chunk.isShortestPossiblePushData())
                 return RuleViolation.SHORTEST_POSSIBLE_PUSHDATA;
@@ -214,13 +215,13 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
 
     /** Returns the transaction that was found to be non-standard, or null. */
     @Nullable
-    public Transaction getNonStandard() {
+    public Transaction<T> getNonStandard() {
         return nonStandard;
     }
 
     /** Returns the transaction that was found to be non-final, or null. */
     @Nullable
-    public Transaction getNonFinal() {
+    public Transaction<T> getNonFinal() {
         return nonFinal;
     }
 
@@ -236,9 +237,9 @@ public class DefaultRiskAnalysis implements RiskAnalysis {
             return "Non-risky";
     }
 
-    public static class Analyzer implements RiskAnalysis.Analyzer {
+    public static class Analyzer<T extends Block> implements RiskAnalysis.Analyzer<T> {
         @Override
-        public DefaultRiskAnalysis create(Wallet wallet, Transaction tx, List<Transaction> dependencies) {
+        public DefaultRiskAnalysis create(Wallet<T> wallet, Transaction<T> tx, List<Transaction<T>> dependencies) {
             return new DefaultRiskAnalysis(wallet, tx, dependencies);
         }
     }

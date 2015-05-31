@@ -31,15 +31,15 @@ import java.util.concurrent.locks.ReentrantLock;
  * the broadcast to be seen as if it never propagated though, so you may instead use {@link #waitForTxFuture()} and then
  * set the returned future when you want the "broadcast" to be completed.
  */
-public class MockTransactionBroadcaster implements TransactionBroadcaster {
+public class MockTransactionBroadcaster implements TransactionBroadcaster<Block> {
     private final ReentrantLock lock = Threading.lock("mock tx broadcaster");
     private final Wallet wallet;
 
     public static class TxFuturePair {
-        public final Transaction tx;
-        public final SettableFuture<Transaction> future;
+        public final Transaction<Block> tx;
+        public final SettableFuture<Transaction<Block>> future;
 
-        public TxFuturePair(Transaction tx, SettableFuture<Transaction> future) {
+        public TxFuturePair(Transaction<Block> tx, SettableFuture<Transaction<Block>> future) {
             this.tx = tx;
             this.future = future;
         }
@@ -67,11 +67,11 @@ public class MockTransactionBroadcaster implements TransactionBroadcaster {
     }
 
     @Override
-    public TransactionBroadcast broadcastTransaction(Transaction tx) {
+    public TransactionBroadcast broadcastTransaction(Transaction<Block> tx) {
         // Use a lock just to catch lock ordering inversions e.g. wallet->broadcaster.
         lock.lock();
         try {
-            SettableFuture<Transaction> result = SettableFuture.create();
+            SettableFuture<Transaction<Block>> result = SettableFuture.create();
             broadcasts.put(new TxFuturePair(tx, result));
             Futures.addCallback(result, new FutureCallback<Transaction>() {
                 @Override

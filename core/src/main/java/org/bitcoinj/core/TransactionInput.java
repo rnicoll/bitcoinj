@@ -40,7 +40,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * transaction as being a module which is wired up to others, the inputs of one have to be wired
  * to the outputs of another. The exceptions are coinbase transactions, which create new coins.
  */
-public class TransactionInput extends ChildMessage implements Serializable {
+public class TransactionInput<T extends Block> extends ChildMessage<T> implements Serializable {
     public static final long NO_SEQUENCE = 0xFFFFFFFFL;
     private static final long serialVersionUID = 2;
     public static final byte[] EMPTY_ARRAY = new byte[0];
@@ -65,16 +65,16 @@ public class TransactionInput extends ChildMessage implements Serializable {
     /**
      * Creates an input that connects to nothing - used only in creation of coinbase transactions.
      */
-    public TransactionInput(NetworkParameters params, @Nullable Transaction parentTransaction, byte[] scriptBytes) {
+    public TransactionInput(NetworkParameters<T> params, @Nullable Transaction<T> parentTransaction, byte[] scriptBytes) {
         this(params, parentTransaction, scriptBytes, new TransactionOutPoint(params, NO_SEQUENCE, (Transaction) null));
     }
 
-    public TransactionInput(NetworkParameters params, @Nullable Transaction parentTransaction, byte[] scriptBytes,
+    public TransactionInput(NetworkParameters<T> params, @Nullable Transaction<T> parentTransaction, byte[] scriptBytes,
                             TransactionOutPoint outpoint) {
         this(params, parentTransaction, scriptBytes, outpoint, null);
     }
 
-    public TransactionInput(NetworkParameters params, @Nullable Transaction parentTransaction, byte[] scriptBytes,
+    public TransactionInput(NetworkParameters<T> params, @Nullable Transaction<T> parentTransaction, byte[] scriptBytes,
             TransactionOutPoint outpoint, @Nullable Coin value) {
         super(params);
         this.scriptBytes = scriptBytes;
@@ -88,7 +88,7 @@ public class TransactionInput extends ChildMessage implements Serializable {
     /**
      * Creates an UNSIGNED input that links to the given output
      */
-    TransactionInput(NetworkParameters params, Transaction parentTransaction, TransactionOutput output) {
+    TransactionInput(NetworkParameters<T> params, Transaction<T> parentTransaction, TransactionOutput<T> output) {
         super(params);
         long outputIndex = output.getIndex();
         if(output.getParentTransaction() != null ) {
@@ -106,7 +106,7 @@ public class TransactionInput extends ChildMessage implements Serializable {
     /**
      * Deserializes an input message. This is usually part of a transaction message.
      */
-    public TransactionInput(NetworkParameters params, @Nullable Transaction parentTransaction, byte[] payload, int offset) throws ProtocolException {
+    public TransactionInput(NetworkParameters<T> params, @Nullable Transaction<T> parentTransaction, byte[] payload, int offset) throws ProtocolException {
         super(params, payload, offset);
         setParent(parentTransaction);
         this.value = null;
@@ -124,7 +124,7 @@ public class TransactionInput extends ChildMessage implements Serializable {
      * as the length will be provided as part of the header.  If unknown then set to Message.UNKNOWN_LENGTH
      * @throws ProtocolException
      */
-    public TransactionInput(NetworkParameters params, Transaction parentTransaction, byte[] payload, int offset,
+    public TransactionInput(NetworkParameters<T> params, Transaction<T> parentTransaction, byte[] payload, int offset,
                             boolean parseLazy, boolean parseRetain)
             throws ProtocolException {
         super(params, payload, offset, parentTransaction, parseLazy, parseRetain, UNKNOWN_LENGTH);
@@ -231,7 +231,7 @@ public class TransactionInput extends ChildMessage implements Serializable {
      * @return The previous output transaction reference, as an OutPoint structure.  This contains the 
      * data needed to connect to the output of the transaction we're gathering coins from.
      */
-    public TransactionOutPoint getOutpoint() {
+    public TransactionOutPoint<T> getOutpoint() {
         maybeParse();
         return outpoint;
     }
@@ -303,8 +303,8 @@ public class TransactionInput extends ChildMessage implements Serializable {
      * @return The TransactionOutput or null if the transactions map doesn't contain the referenced tx.
      */
     @Nullable
-    TransactionOutput getConnectedOutput(Map<Sha256Hash, Transaction> transactions) {
-        Transaction tx = transactions.get(outpoint.getHash());
+    TransactionOutput<T> getConnectedOutput(Map<Sha256Hash, Transaction<T>> transactions) {
+        Transaction<T> tx = transactions.get(outpoint.getHash());
         if (tx == null)
             return null;
         return tx.getOutputs().get((int) outpoint.getIndex());
@@ -334,8 +334,8 @@ public class TransactionInput extends ChildMessage implements Serializable {
      * @param mode   Whether to abort if there's a pre-existing connection or not.
      * @return NO_SUCH_TX if the prevtx wasn't found, ALREADY_SPENT if there was a conflict, SUCCESS if not.
      */
-    public ConnectionResult connect(Map<Sha256Hash, Transaction> transactions, ConnectMode mode) {
-        Transaction tx = transactions.get(outpoint.getHash());
+    public ConnectionResult connect(Map<Sha256Hash, Transaction<T>> transactions, ConnectMode mode) {
+        Transaction<T> tx = transactions.get(outpoint.getHash());
         if (tx == null) {
             return TransactionInput.ConnectionResult.NO_SUCH_TX;
         }

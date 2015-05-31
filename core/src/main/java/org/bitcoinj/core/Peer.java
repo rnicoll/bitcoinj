@@ -743,7 +743,7 @@ public class Peer extends PeerSocketHandler {
     }
 
     // The marker object in the future returned is the same as the parameter. It is arbitrary and can be anything.
-    private ListenableFuture<Object> downloadDependenciesInternal(final Transaction tx,
+    private ListenableFuture<Object> downloadDependenciesInternal(final Transaction<?> tx,
                                                                   final Object marker,
                                                                   final List<Transaction> results) {
         final SettableFuture<Object> resultFuture = SettableFuture.create();
@@ -754,14 +754,14 @@ public class Peer extends PeerSocketHandler {
 
         // We may end up requesting transactions that we've already downloaded and thrown away here.
         Set<Sha256Hash> needToRequest = new CopyOnWriteArraySet<Sha256Hash>();
-        for (TransactionInput input : tx.getInputs()) {
+        for (TransactionInput<?> input : tx.getInputs()) {
             // There may be multiple inputs that connect to the same transaction.
             needToRequest.add(input.getOutpoint().getHash());
         }
         lock.lock();
         try {
             // Build the request for the missing dependencies.
-            List<ListenableFuture<Transaction>> futures = Lists.newArrayList();
+            List<ListenableFuture<Transaction<?>>> futures = Lists.newArrayList();
             GetDataMessage getdata = new GetDataMessage(params);
             if (needToRequest.size() > 1)
                 log.info("{}: Requesting {} transactions for dep resolution", getAddress(), needToRequest.size());
@@ -773,10 +773,10 @@ public class Peer extends PeerSocketHandler {
                 futures.add(req.future);
                 getDataFutures.add(req);
             }
-            ListenableFuture<List<Transaction>> successful = Futures.successfulAsList(futures);
-            Futures.addCallback(successful, new FutureCallback<List<Transaction>>() {
+            ListenableFuture<List<Transaction<?>>> successful = Futures.successfulAsList(futures);
+            Futures.addCallback(successful, new FutureCallback<List<Transaction<?>>>() {
                 @Override
-                public void onSuccess(List<Transaction> transactions) {
+                public void onSuccess(List<Transaction<?>> transactions) {
                     // Once all transactions either were received, or we know there are no more to come ...
                     // Note that transactions will contain "null" for any positions that weren't successful.
                     List<ListenableFuture<Object>> childFutures = Lists.newLinkedList();
@@ -787,7 +787,7 @@ public class Peer extends PeerSocketHandler {
                         // Now recurse into the dependencies of this transaction too.
                         childFutures.add(downloadDependenciesInternal(tx, marker, results));
                     }
-                    if (childFutures.size() == 0) {
+                    if (childFutures.isEmpty()) {
                         // Short-circuit: we're at the bottom of this part of the tree.
                         resultFuture.set(marker);
                     } else {

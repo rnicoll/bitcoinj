@@ -16,6 +16,7 @@
 
 package org.bitcoinj.wallet;
 
+import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Transaction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -23,22 +24,22 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * Stores data about a transaction that is only relevant to the {@link org.bitcoinj.core.Wallet} class.
  */
-public class WalletTransaction {
+public class WalletTransaction<T extends Block> {
     public enum Pool {
         UNSPENT, // unspent in best chain
         SPENT, // spent in best chain
         DEAD, // double-spend in alt chain
         PENDING, // a pending tx we would like to go into the best chain
     }
-    private final Transaction transaction;
+    private final Transaction<T> transaction;
     private final Pool pool;
     
-    public WalletTransaction(Pool pool, Transaction transaction) {
+    public WalletTransaction(Pool pool, Transaction<T> transaction) {
         this.pool = checkNotNull(pool);
         this.transaction = transaction;
     }
 
-    public Transaction getTransaction() {
+    public Transaction<T> getTransaction() {
         return transaction;
     }
     

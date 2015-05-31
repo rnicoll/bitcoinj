@@ -24,7 +24,7 @@ import java.util.Map;
 /**
  * This interface is used to abstract the {@link org.bitcoinj.core.Wallet} and the {@link org.bitcoinj.core.Transaction}
  */
-public interface TransactionBag {
+public interface TransactionBag<T extends Block> {
     /** Returns true if this wallet contains a public key which hashes to the given hash. */
     public boolean isPubKeyHashMine(byte[] pubkeyHash);
 
@@ -38,5 +38,5 @@ public interface TransactionBag {
     public boolean isPayToScriptHashMine(byte[] payToScriptHash);
 
     /** Returns transactions from a specific pool. */
-    public Map<Sha256Hash, Transaction> getTransactionPool(WalletTransaction.Pool pool);
+    public Map<Sha256Hash, Transaction<T>> getTransactionPool(WalletTransaction.Pool pool);
 }

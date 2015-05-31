@@ -10,19 +10,20 @@ import com.google.common.annotations.VisibleForTesting;
 
 import java.math.BigInteger;
 import java.util.*;
+import org.bitcoinj.core.Block;
 
 /**
  * This class implements a {@link CoinSelector} which attempts to get the highest priority
  * possible. This means that the transaction is the most likely to get confirmed. Note that this means we may end up
  * "spending" more priority than would be required to get the transaction we are creating confirmed.
  */
-public class DefaultCoinSelector implements CoinSelector {
+public class DefaultCoinSelector<T extends Block> implements CoinSelector<T> {
     @Override
-    public CoinSelection select(Coin target, List<TransactionOutput> candidates) {
-        ArrayList<TransactionOutput> selected = new ArrayList<TransactionOutput>();
+    public CoinSelection select(Coin target, List<TransactionOutput<T>> candidates) {
+        ArrayList<TransactionOutput<T>> selected = new ArrayList<TransactionOutput<T>>();
         // Sort the inputs by age*value so we get the highest "coindays" spent.
         // TODO: Consider changing the wallets internal format to track just outputs and keep them ordered.
-        ArrayList<TransactionOutput> sortedOutputs = new ArrayList<TransactionOutput>(candidates);
+        ArrayList<TransactionOutput<T>> sortedOutputs = new ArrayList<TransactionOutput<T>>(candidates);
         // When calculating the wallet balance, we may be asked to select all possible coins, if so, avoid sorting
         // them in order to improve performance.
         // TODO: Take in network parameters when instanatiated, and then test against the current network. Or just have a boolean parameter for "give me everything"
@@ -41,13 +42,13 @@ public class DefaultCoinSelector implements CoinSelector {
         }
         // Total may be lower than target here, if the given candidates were insufficient to create to requested
         // transaction.
-        return new CoinSelection(Coin.valueOf(total), selected);
+        return new CoinSelection<T>(Coin.valueOf(total), selected);
     }
 
-    @VisibleForTesting static void sortOutputs(ArrayList<TransactionOutput> outputs) {
-        Collections.sort(outputs, new Comparator<TransactionOutput>() {
+    @VisibleForTesting static <T extends Block> void sortOutputs(ArrayList<TransactionOutput<T>> outputs) {
+        Collections.sort(outputs, new Comparator<TransactionOutput<T>>() {
             @Override
-            public int compare(TransactionOutput a, TransactionOutput b) {
+            public int compare(TransactionOutput<T> a, TransactionOutput<T> b) {
                 int depth1 = a.getParentTransactionDepthInBlocks();
                 int depth2 = b.getParentTransactionDepthInBlocks();
                 Coin aValue = a.getValue();
@@ -68,14 +69,14 @@ public class DefaultCoinSelector implements CoinSelector {
     }
 
     /** Sub-classes can override this to just customize whether transactions are usable, but keep age sorting. */
-    protected boolean shouldSelect(Transaction tx) {
+    protected boolean shouldSelect(Transaction<T> tx) {
         if (tx != null) {
             return isSelectable(tx);
         }
         return true;
     }
 
-    public static boolean isSelectable(Transaction tx) {
+    public static <T extends Block> boolean isSelectable(Transaction<T> tx) {
         // Only pick chain-included transactions, or transactions that are ours and pending.
         TransactionConfidence confidence = tx.getConfidence();
         TransactionConfidence.ConfidenceType type = confidence.getConfidenceType();

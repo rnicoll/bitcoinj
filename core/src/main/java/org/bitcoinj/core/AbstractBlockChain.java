@@ -80,12 +80,12 @@ import static com.google.common.base.Preconditions.*;
  * <p>Every so often the block chain passes a difficulty transition point. At that time, all the blocks in the last
  * 2016 blocks are examined and a new difficulty target is calculated from them.</p>
  */
-public abstract class AbstractBlockChain {
+public abstract class AbstractBlockChain<T extends Block> {
     private static final Logger log = LoggerFactory.getLogger(AbstractBlockChain.class);
     protected final ReentrantLock lock = Threading.lock("blockchain");
 
     /** Keeps a map of block hashes to StoredBlocks. */
-    private final BlockStore blockStore;
+    private final BlockStore<T> blockStore;
 
     /**
      * Tracks the top of the best known chain.<p>
@@ -95,7 +95,7 @@ public abstract class AbstractBlockChain {
      * greater work than the one obtained by following this one down. In that case a reorganize is triggered,
      * potentially invalidating transactions in our wallet.
      */
-    protected StoredBlock chainHead;
+    protected StoredBlock<T> chainHead;
 
     // TODO: Scrap this and use a proper read/write for all of the block chain objects.
     // The chainHead field is read/written synchronized with this object rather than BlockChain. However writing is
@@ -104,20 +104,20 @@ public abstract class AbstractBlockChain {
     // locked most of the time.
     private final Object chainHeadLock = new Object();
 
-    protected final NetworkParameters params;
+    protected final NetworkParameters<T> params;
     private final CopyOnWriteArrayList<ListenerRegistration<BlockChainListener>> listeners;
 
     // Holds a block header and, optionally, a list of tx hashes or block's transactions
     class OrphanBlock {
-        final Block block;
+        final T block;
         final List<Sha256Hash> filteredTxHashes;
         final Map<Sha256Hash, Transaction> filteredTxn;
-        OrphanBlock(Block block, @Nullable List<Sha256Hash> filteredTxHashes, @Nullable Map<Sha256Hash, Transaction> filteredTxn) {
+        OrphanBlock(T block, @Nullable List<Sha256Hash> filteredTxHashes, @Nullable Map<Sha256Hash, Transaction> filteredTxn) {
             final boolean filtered = filteredTxHashes != null && filteredTxn != null;
             Preconditions.checkArgument((block.transactions == null && filtered)
                                         || (block.transactions != null && !filtered));
             if (!shouldVerifyTransactions())
-                this.block = block.cloneAsHeader();
+                this.block = AbstractBlockChain.this.params.cloneBlockAsHeader(block);
             else
                 this.block = block;
             this.filteredTxHashes = filteredTxHashes;
@@ -138,8 +138,8 @@ public abstract class AbstractBlockChain {
     private double previousFalsePositiveRate;
 
     /** See {@link #AbstractBlockChain(Context, List, BlockStore)} */
-    public AbstractBlockChain(NetworkParameters params, List<BlockChainListener> listeners,
-                              BlockStore blockStore) throws BlockStoreException {
+    public AbstractBlockChain(NetworkParameters<T> params, List<BlockChainListener> listeners,
+                              BlockStore<T> blockStore) throws BlockStoreException {
         this(Context.getOrCreate(params), listeners, blockStore);
     }
 
@@ -147,7 +147,7 @@ public abstract class AbstractBlockChain {
      * Constructs a BlockChain connected to the given list of listeners (eg, wallets) and a store.
      */
     public AbstractBlockChain(Context context, List<BlockChainListener> listeners,
-                              BlockStore blockStore) throws BlockStoreException {
+                              BlockStore<T> blockStore) throws BlockStoreException {
         this.blockStore = blockStore;
         chainHead = blockStore.getChainHead();
         log.info("chain head is at height {}:\n{}", chainHead.getHeight(), chainHead.getHeader());
@@ -213,7 +213,7 @@ public abstract class AbstractBlockChain {
     /**
      * Returns the {@link BlockStore} the chain was constructed with. You can use this to iterate over the chain.
      */
-    public BlockStore getBlockStore() {
+    public BlockStore<T> getBlockStore() {
         return blockStore;
     }
     
@@ -224,7 +224,7 @@ public abstract class AbstractBlockChain {
      * @param block The {@link Block} to add/update.
      * @return the newly created {@link StoredBlock}
      */
-    protected abstract StoredBlock addToBlockStore(StoredBlock storedPrev, Block block)
+    protected abstract StoredBlock<T> addToBlockStore(StoredBlock<T> storedPrev, T block)
             throws BlockStoreException, VerificationException;
     
     /**
@@ -236,7 +236,7 @@ public abstract class AbstractBlockChain {
      *                        (from a call to connectTransactions), if in fully verifying mode (null otherwise).
      * @return the newly created {@link StoredBlock}
      */
-    protected abstract StoredBlock addToBlockStore(StoredBlock storedPrev, Block header,
+    protected abstract StoredBlock<T> addToBlockStore(StoredBlock<T> storedPrev, T header,
                                                    @Nullable TransactionOutputChanges txOutputChanges)
             throws BlockStoreException, VerificationException;
 
@@ -253,7 +253,7 @@ public abstract class AbstractBlockChain {
      * Should write the new head to block store and then commit any database transactions
      * that were started by disconnectTransactions/connectTransactions.
      */
-    protected abstract void doSetChainHead(StoredBlock chainHead) throws BlockStoreException;
+    protected abstract void doSetChainHead(StoredBlock<T> chainHead) throws BlockStoreException;
     
     /**
      * Called if we (possibly) previously called disconnectTransaction/connectTransactions,
@@ -267,7 +267,7 @@ public abstract class AbstractBlockChain {
      * For a standard BlockChain, this should return blockStore.get(hash),
      * for a FullPrunedBlockChain blockStore.getOnceUndoableStoredBlock(hash)
      */
-    protected abstract StoredBlock getStoredBlockInCurrentScope(Sha256Hash hash) throws BlockStoreException;
+    protected abstract StoredBlock<T> getStoredBlockInCurrentScope(Sha256Hash hash) throws BlockStoreException;
 
     /**
      * Processes a received block and tries to add it to the chain. If there's something wrong with the block an
@@ -275,7 +275,7 @@ public abstract class AbstractBlockChain {
      * If the block can be connected to the chain, returns true.
      * Accessing block's transactions in another thread while this method runs may result in undefined behavior.
      */
-    public boolean add(Block block) throws VerificationException, PrunedException {
+    public boolean add(T block) throws VerificationException, PrunedException {
         try {
             return add(block, true, null, null);
         } catch (BlockStoreException e) {
@@ -297,7 +297,7 @@ public abstract class AbstractBlockChain {
      * exception is thrown. If the block is OK but cannot be connected to the chain at this time, returns false.
      * If the block can be connected to the chain, returns true.
      */
-    public boolean add(FilteredBlock block) throws VerificationException, PrunedException {
+    public boolean add(FilteredBlock<T> block) throws VerificationException, PrunedException {
         try {
             // The block has a list of hashes of transactions that matched the Bloom filter, and a list of associated
             // Transaction objects. There may be fewer Transaction objects than hashes, this is expected. It can happen
@@ -336,7 +336,7 @@ public abstract class AbstractBlockChain {
      * @throws BlockStoreException if the block store had an underlying error.
      * @return The full set of all changes made to the set of open transaction outputs.
      */
-    protected abstract TransactionOutputChanges connectTransactions(int height, Block block) throws VerificationException, BlockStoreException;
+    protected abstract TransactionOutputChanges connectTransactions(int height, T block) throws VerificationException, BlockStoreException;
 
     /**
      * Load newBlock from BlockStore and connect its transactions, returning changes to the set of unspent transactions.
@@ -347,10 +347,10 @@ public abstract class AbstractBlockChain {
      * @throws BlockStoreException if the block store had an underlying error or newBlock does not exist in the block store at all.
      * @return The full set of all changes made to the set of open transaction outputs.
      */
-    protected abstract TransactionOutputChanges connectTransactions(StoredBlock newBlock) throws VerificationException, BlockStoreException, PrunedException;    
+    protected abstract TransactionOutputChanges connectTransactions(StoredBlock<T> newBlock) throws VerificationException, BlockStoreException, PrunedException;    
     
     // filteredTxHashList contains all transactions, filteredTxn just a subset
-    private boolean add(Block block, boolean tryConnecting,
+    private boolean add(T block, boolean tryConnecting,
                         @Nullable List<Sha256Hash> filteredTxHashList, @Nullable Map<Sha256Hash, Transaction> filteredTxn)
             throws BlockStoreException, VerificationException, PrunedException {
         // TODO: Use read/write locks to ensure that during chain download properties are still low latency.
@@ -443,7 +443,7 @@ public abstract class AbstractBlockChain {
     // expensiveChecks enables checks that require looking at blocks further back in the chain
     // than the previous one when connecting (eg median timestamp check)
     // It could be exposed, but for now we just set it to shouldVerifyTransactions()
-    private void connectBlock(final Block block, StoredBlock storedPrev, boolean expensiveChecks,
+    private void connectBlock(final T block, StoredBlock<T> storedPrev, boolean expensiveChecks,
                               @Nullable final List<Sha256Hash> filteredTxHashList,
                               @Nullable final Map<Sha256Hash, Transaction> filteredTxn) throws BlockStoreException, VerificationException, PrunedException {
         checkState(lock.isHeldByCurrentThread());
@@ -472,8 +472,8 @@ public abstract class AbstractBlockChain {
             TransactionOutputChanges txOutChanges = null;
             if (shouldVerifyTransactions())
                 txOutChanges = connectTransactions(storedPrev.getHeight() + 1, block);
-            StoredBlock newStoredBlock = addToBlockStore(storedPrev,
-                    block.transactions == null ? block : block.cloneAsHeader(), txOutChanges);
+            StoredBlock<T> newStoredBlock = addToBlockStore(storedPrev,
+                    block.transactions == null ? block : params.cloneBlockAsHeader(block), txOutChanges);
             setChainHead(newStoredBlock);
             log.debug("Chain is now {} blocks high, running listeners", newStoredBlock.getHeight());
             informListenersForNewBlock(block, NewBlockType.BEST_CHAIN, filteredTxHashList, filteredTxn, newStoredBlock);
@@ -631,7 +631,7 @@ public abstract class AbstractBlockChain {
      * if (shouldVerifyTransactions)
      *     Either newChainHead needs to be in the block store as a FullStoredBlock, or (block != null && block.transactions != null)
      */
-    private void handleNewBestChain(StoredBlock storedPrev, StoredBlock newChainHead, Block block, boolean expensiveChecks)
+    private void handleNewBestChain(StoredBlock<T> storedPrev, StoredBlock<T> newChainHead, T block, boolean expensiveChecks)
             throws BlockStoreException, VerificationException, PrunedException {
         checkState(lock.isHeldByCurrentThread());
         // This chain has overtaken the one we currently believe is best. Reorganize is required.
@@ -661,7 +661,7 @@ public abstract class AbstractBlockChain {
                     throw e;
                 }
             }
-            StoredBlock cursor;
+            StoredBlock<T> cursor;
             // Walk in ascending chronological order.
             for (Iterator<StoredBlock> it = newBlocks.descendingIterator(); it.hasNext();) {
                 cursor = it.next();

@@ -31,7 +31,7 @@ import static com.google.common.base.Preconditions.checkState;
  * format and built-in Java object serialization. Specific types of messages that are used both in the block chain,
  * and on the wire, are derived from this class.</p>
  */
-public abstract class Message implements Serializable {
+public abstract class Message<T extends Block> implements Serializable {
     private static final Logger log = LoggerFactory.getLogger(Message.class);
     private static final long serialVersionUID = -3561053461717079135L;
 
@@ -63,7 +63,7 @@ public abstract class Message implements Serializable {
     protected transient byte[] checksum;
 
     // This will be saved by subclasses that implement Serializable.
-    protected NetworkParameters params;
+    protected NetworkParameters<T> params;
 
     /**
      * This exists for the Java serialization framework to use only.

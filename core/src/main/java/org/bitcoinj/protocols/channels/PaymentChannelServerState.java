@@ -63,7 +63,7 @@ import static com.google.common.base.Preconditions.*;
  * can then begin paying by providing us with signatures for the multi-sig contract which pay some amount back to the
  * client, and the rest is ours to do with as we wish.</p>
  */
-public class PaymentChannelServerState {
+public class PaymentChannelServerState<T extends Block> {
     private static final Logger log = LoggerFactory.getLogger(PaymentChannelServerState.class);
 
     /**
@@ -93,7 +93,7 @@ public class PaymentChannelServerState {
     private final TransactionBroadcaster broadcaster;
 
     // The multi-sig contract and the output script from it
-    private Transaction multisigContract = null;
+    private Transaction<T> multisigContract = null;
     private Script multisigScript;
 
     // The last signature the client provided for a payment transaction.
@@ -105,7 +105,7 @@ public class PaymentChannelServerState {
     private Coin feePaidForPayment;
 
     // The refund/change transaction output that goes back to the client
-    private TransactionOutput clientOutput;
+    private TransactionOutput<T> clientOutput;
     private long refundTransactionUnlockTimeSecs;
 
     private long minExpireTime;
@@ -345,7 +345,7 @@ public class PaymentChannelServerState {
         tx.getInput(0).setScriptSig(scriptSig);
     }
 
-    final SettableFuture<Transaction> closedFuture = SettableFuture.create();
+    final SettableFuture<Transaction<T>> closedFuture = SettableFuture.create();
     /**
      * <p>Closes this channel and broadcasts the highest value payment transaction on the network.</p>
      *
@@ -361,7 +361,7 @@ public class PaymentChannelServerState {
      *         will never complete, a timeout should be used.
      * @throws InsufficientMoneyException If the payment tx would have cost more in fees to spend than it is worth.
      */
-    public synchronized ListenableFuture<Transaction> close() throws InsufficientMoneyException {
+    public synchronized ListenableFuture<Transaction<T>> close() throws InsufficientMoneyException {
         if (storedServerChannel != null) {
             StoredServerChannel temp = storedServerChannel;
             storedServerChannel = null;
@@ -383,7 +383,7 @@ public class PaymentChannelServerState {
             log.warn("Failed attempt to settle a channel in state " + state);
             return closedFuture;
         }
-        Transaction tx = null;
+        Transaction<T> tx = null;
         try {
             Wallet.SendRequest req = makeUnsignedChannelContract(bestValueToMe);
             tx = req.tx;
@@ -407,7 +407,7 @@ public class PaymentChannelServerState {
             signMultisigInput(tx, Transaction.SigHash.ALL, false);
             // Some checks that shouldn't be necessary but it can't hurt to check.
             tx.verify();  // Sanity check syntax.
-            for (TransactionInput input : tx.getInputs())
+            for (TransactionInput<T> input : tx.getInputs())
                 input.verify();  // Run scripts and ensure it is valid.
         } catch (InsufficientMoneyException e) {
             throw e;  // Don't fall through.

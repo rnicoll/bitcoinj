@@ -42,11 +42,11 @@ import static org.bitcoinj.core.Utils.*;
  * <li>Message.bitcoinSerializeToStream() needs to be properly subclassed</li>
  * </ul>
  */
-public class BitcoinSerializer {
+public class BitcoinSerializer<T extends Block> {
     private static final Logger log = LoggerFactory.getLogger(BitcoinSerializer.class);
     private static final int COMMAND_LEN = 12;
 
-    private NetworkParameters params;
+    private NetworkParameters<T> params;
     private boolean parseLazy = false;
     private boolean parseRetain = false;
 
@@ -80,7 +80,7 @@ public class BitcoinSerializer {
      *
      * @param params           networkParams used to create Messages instances and termining packetMagic
      */
-    public BitcoinSerializer(NetworkParameters params) {
+    public BitcoinSerializer(NetworkParameters<T> params) {
         this(params, false, false);
     }
 
@@ -91,7 +91,7 @@ public class BitcoinSerializer {
      * @param parseLazy        deserialize messages in lazy mode.
      * @param parseRetain      retain the backing byte array of a message for fast reserialization.
      */
-    public BitcoinSerializer(NetworkParameters params, boolean parseLazy, boolean parseRetain) {
+    public BitcoinSerializer(NetworkParameters<T> params, boolean parseLazy, boolean parseRetain) {
         this.params = params;
         this.parseLazy = parseLazy;
         this.parseRetain = parseRetain;
@@ -124,7 +124,7 @@ public class BitcoinSerializer {
     /**
      * Writes message to to the output stream.
      */
-    public void serialize(Message message, OutputStream out) throws IOException {
+    public void serialize(Message<T> message, OutputStream out) throws IOException {
         String name = names.get(message.getClass());
         if (name == null) {
             throw new Error("BitcoinSerializer doesn't currently know how to serialize " + message.getClass());
@@ -168,7 +168,7 @@ public class BitcoinSerializer {
      * Deserialize payload only.  You must provide a header, typically obtained by calling
      * {@link BitcoinSerializer#deserializeHeader}.
      */
-    public Message deserializePayload(BitcoinPacketHeader header, ByteBuffer in) throws ProtocolException, BufferUnderflowException {
+    public Message<T> deserializePayload(BitcoinPacketHeader header, ByteBuffer in) throws ProtocolException, BufferUnderflowException {
         byte[] payloadBytes = new byte[header.size];
         in.get(payloadBytes, 0, header.size);
 
@@ -194,9 +194,9 @@ public class BitcoinSerializer {
         }
     }
 
-    private Message makeMessage(String command, int length, byte[] payloadBytes, byte[] hash, byte[] checksum) throws ProtocolException {
+    private Message<T> makeMessage(String command, int length, byte[] payloadBytes, byte[] hash, byte[] checksum) throws ProtocolException {
         // We use an if ladder rather than reflection because reflection is very slow on Android.
-        Message message;
+        Message<T> message;
         if (command.equals("version")) {
             return new VersionMessage(params, payloadBytes);
         } else if (command.equals("inv")) {

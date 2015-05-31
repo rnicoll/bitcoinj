@@ -4,6 +4,7 @@ import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.TransactionOutput;
 
 import java.util.Collection;
+import org.bitcoinj.core.Block;
 
 /**
  * Represents the results of a
@@ -12,11 +13,11 @@ import java.util.Collection;
  * Different coin selections could be produced by different coin selectors from the same input set, according
  * to their varying policies.
  */
-public class CoinSelection {
+public class CoinSelection<T extends Block> {
     public Coin valueGathered;
-    public Collection<TransactionOutput> gathered;
+    public Collection<TransactionOutput<T>> gathered;
 
-    public CoinSelection(Coin valueGathered, Collection<TransactionOutput> gathered) {
+    public CoinSelection(Coin valueGathered, Collection<TransactionOutput<T>> gathered) {
         this.valueGathered = valueGathered;
         this.gathered = gathered;
     }

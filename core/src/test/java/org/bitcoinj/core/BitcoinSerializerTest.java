@@ -101,7 +101,7 @@ public class BitcoinSerializerTest {
         BitcoinSerializer bs = new BitcoinSerializer(MainNetParams.get(), lazy, true);
         
         //first try writing to a fields to ensure uncaching and children are not affected
-        Transaction tx = (Transaction)bs.deserialize(ByteBuffer.wrap(txMessage));
+        Transaction<Block> tx = (Transaction<Block>)bs.deserialize(ByteBuffer.wrap(txMessage));
         assertNotNull(tx);
         assertEquals(!lazy, tx.isParsed());
         assertEquals(true, tx.isCached());

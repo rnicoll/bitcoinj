@@ -51,14 +51,14 @@ import static com.google.common.base.Preconditions.checkState;
  * sense for selling MP3s might not make sense for selling cars, or accepting payments from a family member. If you
  * are building a wallet, how to present confidence to your users is something to consider carefully.</p>
  */
-public class Transaction extends ChildMessage implements Serializable {
+public class Transaction<T extends Block> extends ChildMessage<T> implements Serializable {
     /**
      * A comparator that can be used to sort transactions by their updateTime field. The ordering goes from most recent
      * into the past.
      */
-    public static final Comparator<Transaction> SORT_TX_BY_UPDATE_TIME = new Comparator<Transaction>() {
+    public static final Comparator<Transaction<?>> SORT_TX_BY_UPDATE_TIME = new Comparator<Transaction<?>>() {
         @Override
-        public int compare(final Transaction tx1, final Transaction tx2) {
+        public int compare(final Transaction<?> tx1, final Transaction<?> tx2) {
             final long time1 = tx1.getUpdateTime().getTime();
             final long time2 = tx2.getUpdateTime().getTime();
             final int updateTimeComparison = -(Longs.compare(time1, time2));
@@ -67,9 +67,9 @@ public class Transaction extends ChildMessage implements Serializable {
         }
     };
     /** A comparator that can be used to sort transactions by their chain height. */
-    public static final Comparator<Transaction> SORT_TX_BY_HEIGHT = new Comparator<Transaction>() {
+    public static final Comparator<Transaction<?>> SORT_TX_BY_HEIGHT = new Comparator<Transaction<?>>() {
         @Override
-        public int compare(final Transaction tx1, final Transaction tx2) {
+        public int compare(final Transaction<?> tx1, final Transaction<?> tx2) {
             final int height1 = tx1.getConfidence().getAppearedAtChainHeight();
             final int height2 = tx2.getConfidence().getAppearedAtChainHeight();
             final int heightComparison = -(Ints.compare(height1, height2));
@@ -101,8 +101,8 @@ public class Transaction extends ChildMessage implements Serializable {
 
     // These are serialized in both bitcoin and java serialization.
     private long version;
-    private ArrayList<TransactionInput> inputs;
-    private ArrayList<TransactionOutput> outputs;
+    private ArrayList<TransactionInput<T>> inputs;
+    private ArrayList<TransactionOutput<T>> outputs;
 
     private long lockTime;
 
@@ -172,8 +172,8 @@ public class Transaction extends ChildMessage implements Serializable {
     public Transaction(NetworkParameters params) {
         super(params);
         version = 1;
-        inputs = new ArrayList<TransactionInput>();
-        outputs = new ArrayList<TransactionOutput>();
+        inputs = new ArrayList<TransactionInput<T>>();
+        outputs = new ArrayList<TransactionOutput<T>>();
         // We don't initialize appearsIn deliberately as it's only useful for transactions stored in the wallet.
         length = 8; // 8 for std fields
     }
@@ -549,7 +549,7 @@ public class Transaction extends ChildMessage implements Serializable {
         // First come the inputs.
         long numInputs = readVarInt();
         optimalEncodingMessageSize += VarInt.sizeOf(numInputs);
-        inputs = new ArrayList<TransactionInput>((int) numInputs);
+        inputs = new ArrayList<TransactionInput<T>>((int) numInputs);
         for (long i = 0; i < numInputs; i++) {
             TransactionInput input = new TransactionInput(params, this, payload, cursor, parseLazy, parseRetain);
             inputs.add(input);
@@ -560,7 +560,7 @@ public class Transaction extends ChildMessage implements Serializable {
         // Now the outputs
         long numOutputs = readVarInt();
         optimalEncodingMessageSize += VarInt.sizeOf(numOutputs);
-        outputs = new ArrayList<TransactionOutput>((int) numOutputs);
+        outputs = new ArrayList<TransactionOutput<T>>((int) numOutputs);
         for (long i = 0; i < numOutputs; i++) {
             TransactionOutput output = new TransactionOutput(params, this, payload, cursor, parseLazy, parseRetain);
             outputs.add(output);
@@ -954,13 +954,13 @@ public class Transaction extends ChildMessage implements Serializable {
             // Set the input to the script of its output. Satoshi does this but the step has no obvious purpose as
             // the signature covers the hash of the prevout transaction which obviously includes the output script
             // already. Perhaps it felt safer to him in some way, or is another leftover from how the code was written.
-            TransactionInput input = inputs.get(inputIndex);
+            TransactionInput<T> input = inputs.get(inputIndex);
             input.setScriptBytes(connectedScript);
 
-            ArrayList<TransactionOutput> outputs = this.outputs;
+            ArrayList<TransactionOutput<T>> outputs = this.outputs;
             if ((sigHashType & 0x1f) == (SigHash.NONE.ordinal() + 1)) {
                 // SIGHASH_NONE means no outputs are signed at all - the signature is effectively for a "blank cheque".
-                this.outputs = new ArrayList<TransactionOutput>(0);
+                this.outputs = new ArrayList<TransactionOutput<T>>(0);
                 // The signature isn't broken by new versions of the transaction issued by other parties.
                 for (int i = 0; i < inputs.size(); i++)
                     if (i != inputIndex)
@@ -987,7 +987,7 @@ public class Transaction extends ChildMessage implements Serializable {
                 }
                 // In SIGHASH_SINGLE the outputs after the matching input index are deleted, and the outputs before
                 // that position are "nulled out". Unintuitively, the value in a "null" transaction is set to -1.
-                this.outputs = new ArrayList<TransactionOutput>(this.outputs.subList(0, inputIndex + 1));
+                this.outputs = new ArrayList<TransactionOutput<T>>(this.outputs.subList(0, inputIndex + 1));
                 for (int i = 0; i < inputIndex; i++)
                     this.outputs.set(i, new TransactionOutput(params, this, Coin.NEGATIVE_SATOSHI, new byte[] {}));
                 // The signature isn't broken by new versions of the transaction issued by other parties.
@@ -996,11 +996,11 @@ public class Transaction extends ChildMessage implements Serializable {
                         inputs.get(i).setSequenceNumber(0);
             }
 
-            ArrayList<TransactionInput> inputs = this.inputs;
+            ArrayList<TransactionInput<T>> inputs = this.inputs;
             if ((sigHashType & SIGHASH_ANYONECANPAY_VALUE) == SIGHASH_ANYONECANPAY_VALUE) {
                 // SIGHASH_ANYONECANPAY means the signature in the input is not broken by changes/additions/removals
                 // of other inputs. For example, this is useful for building assurance contracts.
-                this.inputs = new ArrayList<TransactionInput>();
+                this.inputs = new ArrayList<TransactionInput<T>>();
                 this.inputs.add(input);
             }
 
@@ -1082,13 +1082,13 @@ public class Transaction extends ChildMessage implements Serializable {
     }
 
     /** Returns an unmodifiable view of all inputs. */
-    public List<TransactionInput> getInputs() {
+    public List<TransactionInput<T>> getInputs() {
         maybeParse();
         return Collections.unmodifiableList(inputs);
     }
 
     /** Returns an unmodifiable view of all outputs. */
-    public List<TransactionOutput> getOutputs() {
+    public List<TransactionOutput<T>> getOutputs() {
         maybeParse();
         return Collections.unmodifiableList(outputs);
     }
