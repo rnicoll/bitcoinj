@@ -118,7 +118,7 @@ public class BitcoindComparisonTool {
             public Message onPreMessageReceived(Peer peer, Message m) {
                 if (m instanceof HeadersMessage) {
                     if (!((HeadersMessage) m).getBlockHeaders().isEmpty()) {
-                        Block b = Iterables.getLast(((HeadersMessage) m).getBlockHeaders());
+                        BlockHeader b = Iterables.getLast(((HeadersMessage) m).getBlockHeaders());
                         log.info("Got header from bitcoind " + b.getHashAsString());
                         bitcoindChainHead = b.getHash();
                     } else
@@ -151,16 +151,16 @@ public class BitcoindComparisonTool {
                             log.info("Got a request for a header before we had even begun processing blocks!");
                             return null;
                         }
-                        LinkedList<Block> headers = new LinkedList<Block>();
-                        Block it = blockList.hashHeaderMap.get(currentBlock.block.getHash());
+                        LinkedList<BlockHeader> headers = new LinkedList<BlockHeader>();
+                        BlockHeader it = blockList.hashHeaderMap.get(currentBlock.block.getHash());
                         while (it != null) {
                             headers.addFirst(it);
                             it = blockList.hashHeaderMap.get(it.getPrevBlockHash());
                         }
-                        LinkedList<Block> sendHeaders = new LinkedList<Block>();
+                        LinkedList<BlockHeader> sendHeaders = new LinkedList<BlockHeader>();
                         boolean found = false;
                         for (Sha256Hash hash : ((GetHeadersMessage) m).getLocator()) {
-                            for (Block b : headers) {
+                            for (BlockHeader b : headers) {
                                 if (found) {
                                     sendHeaders.addLast(b);
                                     log.info("Sending header (" + b.getPrevBlockHash() + ") -> " + b.getHash());
@@ -178,7 +178,7 @@ public class BitcoindComparisonTool {
                             sendHeaders = headers;
                         bitcoind.sendMessage(new HeadersMessage(params, sendHeaders));
                         InventoryMessage i = new InventoryMessage(params);
-                        for (Block b : sendHeaders)
+                        for (BlockHeader b : sendHeaders)
                             i.addBlock(b);
                         bitcoind.sendMessage(i);
                     } catch (Exception e) {

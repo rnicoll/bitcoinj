@@ -40,7 +40,7 @@ public interface PeerDataEventListener {
      * @param filteredBlock if non-null, the object that wraps the block header passed as the block param.
      * @param blocksLeft the number of blocks left to download
      */
-    void onBlocksDownloaded(Peer peer, Block block, @Nullable FilteredBlock filteredBlock, int blocksLeft);
+    void onBlocksDownloaded(Peer peer, AbstractBlockHeader block, @Nullable FilteredBlock filteredBlock, int blocksLeft);
 
     /**
      * Called when a download is started with the initial number of blocks to be downloaded.

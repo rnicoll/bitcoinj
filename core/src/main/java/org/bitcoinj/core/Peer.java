@@ -580,7 +580,7 @@ public class Peer extends PeerSocketHandler {
         try {
             checkState(!downloadBlockBodies, toString());
             for (int i = 0; i < m.getBlockHeaders().size(); i++) {
-                Block header = m.getBlockHeaders().get(i);
+                BlockHeader header = m.getBlockHeaders().get(i);
                 // Process headers until we pass the fast catchup time, or are about to catch up with the head
                 // of the chain - always process the last block as a full/filtered block to kick us out of the
                 // fast catchup mode (in which we ignore new blocks).
@@ -908,7 +908,7 @@ public class Peer extends PeerSocketHandler {
                 lock.lock();
                 try {
                     if (downloadBlockBodies) {
-                        final Block orphanRoot = checkNotNull(blockChain.getOrphanRoot(m.getHash()));
+                        final AbstractBlockHeader orphanRoot = checkNotNull(blockChain.getOrphanRoot(m.getHash()));
                         blockChainDownloadLocked(orphanRoot.getHash());
                     } else {
                         log.info("Did not start chain download on solved block due to in-flight header download.");
@@ -941,7 +941,7 @@ public class Peer extends PeerSocketHandler {
         // Note that we currently do nothing about peers which maliciously do not include transactions which
         // actually match our filter or which simply do not send us all the transactions we need: it can be fixed
         // by cross-checking peers against each other.
-        pendingBlockDownloads.remove(m.getBlockHeader().getHash());
+        pendingBlockDownloads.remove(m.getHash());
         try {
             // It's a block sent to us because the peer thought we needed it, so maybe add it to the block chain.
             // The FilteredBlock m here contains a list of hashes, and may contain Transaction objects for a subset
@@ -989,7 +989,7 @@ public class Peer extends PeerSocketHandler {
 
             if (blockChain.add(m)) {
                 // The block was successfully linked into the chain. Notify the user of our progress.
-                invokeOnBlocksDownloaded(m.getBlockHeader(), m);
+                invokeOnBlocksDownloaded(m, m);
             } else {
                 // This block is an orphan - we don't know how to get from it back to the genesis block yet. That
                 // must mean that there are blocks we are missing, so do another getblocks with a new block locator
@@ -1008,7 +1008,7 @@ public class Peer extends PeerSocketHandler {
                 // no matter how many blocks are solved, and therefore that the (2) duplicate filtering can work.
                 lock.lock();
                 try {
-                    final Block orphanRoot = checkNotNull(blockChain.getOrphanRoot(m.getHash()));
+                    final AbstractBlockHeader orphanRoot = checkNotNull(blockChain.getOrphanRoot(m.getHash()));
                     blockChainDownloadLocked(orphanRoot.getHash());
                 } finally {
                     lock.unlock();
@@ -1047,7 +1047,7 @@ public class Peer extends PeerSocketHandler {
         return found;
     }
 
-    private void invokeOnBlocksDownloaded(final Block block, @Nullable final FilteredBlock fb) {
+    private void invokeOnBlocksDownloaded(final AbstractBlockHeader block, @Nullable final FilteredBlock fb) {
         // It is possible for the peer block height difference to be negative when blocks have been solved and broadcast
         // since the time we first connected to the peer. However, it's weird and unexpected to receive a callback
         // with negative "blocks left" in this case, so we clamp to zero so the API user doesn't have to think about it.
@@ -1140,7 +1140,7 @@ public class Peer extends PeerSocketHandler {
                     if (blockChain.isOrphan(item.hash) && downloadBlockBodies) {
                         // If an orphan was re-advertised, ask for more blocks unless we are not currently downloading
                         // full block data because we have a getheaders outstanding.
-                        final Block orphanRoot = checkNotNull(blockChain.getOrphanRoot(item.hash));
+                        final AbstractBlockHeader orphanRoot = checkNotNull(blockChain.getOrphanRoot(item.hash));
                         blockChainDownloadLocked(orphanRoot.getHash());
                     } else {
                         // Don't re-request blocks we already requested. Normally this should not happen. However there is

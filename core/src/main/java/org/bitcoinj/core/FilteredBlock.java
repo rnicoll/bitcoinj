@@ -26,10 +26,9 @@ import java.util.*;
  * <p>A FilteredBlock is used to relay a block with its transactions filtered using a {@link BloomFilter}. It consists
  * of the block header and a {@link PartialMerkleTree} which contains the transactions which matched the filter.</p>
  */
-public class FilteredBlock extends Message {
+public class FilteredBlock extends AbstractBlockHeader {
     /** The protocol version at which Bloom filtering started to be supported. */
     public static final int MIN_PROTOCOL_VERSION = 70000;
-    private Block header;
 
     private PartialMerkleTree merkleTree;
     private List<Sha256Hash> cachedTransactionHashes = null;
@@ -38,34 +37,28 @@ public class FilteredBlock extends Message {
     // These were relayed as a part of the filteredblock getdata, ie likely weren't previously received as loose transactions
     private Map<Sha256Hash, Transaction> associatedTransactions = new HashMap<Sha256Hash, Transaction>();
     
-    public FilteredBlock(NetworkParameters params, byte[] payloadBytes) throws ProtocolException {
-        super(params, payloadBytes, 0);
+    public FilteredBlock(NetworkParameters params, byte[] payload, int offset, MessageSerializer serializer, int length) throws ProtocolException {
+        super(params, payload, offset, serializer, length);
     }
 
-    public FilteredBlock(NetworkParameters params, Block header, PartialMerkleTree pmt) {
-        super(params);
-        this.header = header;
+    public FilteredBlock(NetworkParameters params, long version, Sha256Hash prevBlockHash, Sha256Hash merkleRoot, long time,
+                         long difficultyTarget, long nonce, PartialMerkleTree pmt) {
+        super(params, version, prevBlockHash, merkleRoot, time, difficultyTarget, nonce);
         this.merkleTree = pmt;
     }
 
     @Override
     public void bitcoinSerializeToStream(OutputStream stream) throws IOException {
-        if (header.transactions == null)
-            header.bitcoinSerializeToStream(stream);
-        else
-            header.cloneAsHeader().bitcoinSerializeToStream(stream);
+        super.bitcoinSerializeToStream(stream);
         merkleTree.bitcoinSerializeToStream(stream);
     }
 
     @Override
     protected void parse() throws ProtocolException {
-        byte[] headerBytes = new byte[Block.HEADER_SIZE];
-        System.arraycopy(payload, 0, headerBytes, 0, Block.HEADER_SIZE);
-        header = params.getDefaultSerializer().makeBlock(headerBytes);
+        super.parse();
         
-        merkleTree = new PartialMerkleTree(params, payload, Block.HEADER_SIZE);
-        
-        length = Block.HEADER_SIZE + merkleTree.getMessageSize();
+        merkleTree = new PartialMerkleTree(params, payload, offset);
+        length += merkleTree.getMessageSize();
     }
     
     /**
@@ -77,24 +70,11 @@ public class FilteredBlock extends Message {
         if (cachedTransactionHashes != null)
             return Collections.unmodifiableList(cachedTransactionHashes);
         List<Sha256Hash> hashesMatched = new LinkedList<Sha256Hash>();
-        if (header.getMerkleRoot().equals(merkleTree.getTxnHashAndMerkleRoot(hashesMatched))) {
+        if (getMerkleRoot().equals(merkleTree.getTxnHashAndMerkleRoot(hashesMatched))) {
             cachedTransactionHashes = hashesMatched;
             return Collections.unmodifiableList(cachedTransactionHashes);
         } else
             throw new VerificationException("Merkle root of block header does not match merkle root of partial merkle tree.");
-    }
-    
-    /**
-     * Gets a copy of the block header
-     */
-    public Block getBlockHeader() {
-        return header.cloneAsHeader();
-    }
-    
-    /** Gets the hash of the block represented in this Filtered Block */
-    @Override
-    public Sha256Hash getHash() {
-        return header.getHash();
     }
     
     /**
@@ -121,6 +101,7 @@ public class FilteredBlock extends Message {
     }
 
     /** Number of transactions in this block, before it was filtered */
+    @Override
     public int getTransactionCount() {
         return merkleTree.getTransactionCount();
     }
@@ -131,16 +112,22 @@ public class FilteredBlock extends Message {
         if (o == null || getClass() != o.getClass()) return false;
         FilteredBlock other = (FilteredBlock) o;
         return associatedTransactions.equals(other.associatedTransactions)
-            && header.equals(other.header) && merkleTree.equals(other.merkleTree);
+            && super.equals(other) && merkleTree.equals(other.merkleTree);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(associatedTransactions, header, merkleTree);
+        int hash = super.hashCode();
+
+        hash = (hash * 31) + associatedTransactions.hashCode();
+        hash = (hash * 31) + merkleTree.hashCode();
+        return hash;
     }
 
     @Override
     public String toString() {
-        return "FilteredBlock{merkleTree=" + merkleTree + ", header=" + header + '}';
+        StringBuilder s = super.toStringBuilder();
+        s.append(merkleTree.toString());
+        return s.toString();
     }
 }

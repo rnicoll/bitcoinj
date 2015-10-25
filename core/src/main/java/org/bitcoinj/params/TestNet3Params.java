@@ -29,6 +29,8 @@ import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 
 import static com.google.common.base.Preconditions.checkState;
+import org.bitcoinj.core.AbstractBlockHeader;
+import org.bitcoinj.core.BlockHeader;
 
 /**
  * Parameters for the testnet, a separate public instance of Bitcoin that has relaxed rules suitable for development
@@ -87,10 +89,10 @@ public class TestNet3Params extends AbstractBitcoinNetParams {
     private static final Date testnetDiffDate = new Date(1329264000000L);
 
     @Override
-    public void checkDifficultyTransitions(final StoredBlock storedPrev, final Block nextBlock,
+    public void checkDifficultyTransitions(final StoredBlock storedPrev, final AbstractBlockHeader nextBlock,
         final BlockStore blockStore) throws VerificationException, BlockStoreException {
         if (!isDifficultyTransitionPoint(storedPrev) && nextBlock.getTime().after(testnetDiffDate)) {
-            Block prev = storedPrev.getHeader();
+            BlockHeader prev = storedPrev.getHeader();
 
             // After 15th February 2012 the rules on the testnet change to avoid people running up the difficulty
             // and then leaving, making it too hard to mine a block. On non-difficulty transition points, easy

@@ -18,6 +18,7 @@
 package org.bitcoinj.params;
 
 import java.math.BigInteger;
+import org.bitcoinj.core.AbstractBlockHeader;
 
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.Coin;
@@ -33,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.bitcoinj.core.BitcoinSerializer;
+import org.bitcoinj.core.BlockHeader;
 
 /**
  * Parameters for Bitcoin-like networks.
@@ -59,9 +61,9 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
     }
 
     @Override
-    public void checkDifficultyTransitions(final StoredBlock storedPrev, final Block nextBlock,
+    public void checkDifficultyTransitions(final StoredBlock storedPrev, final AbstractBlockHeader nextBlock,
     	final BlockStore blockStore) throws VerificationException, BlockStoreException {
-        Block prev = storedPrev.getHeader();
+        BlockHeader prev = storedPrev.getHeader();
 
         // Is this supposed to be a difficulty transition point?
         if (!isDifficultyTransitionPoint(storedPrev)) {
@@ -90,7 +92,7 @@ public abstract class AbstractBitcoinNetParams extends NetworkParameters {
         if (elapsed > 50)
             log.info("Difficulty transition traversal took {}msec", elapsed);
 
-        Block blockIntervalAgo = cursor.getHeader();
+        BlockHeader blockIntervalAgo = cursor.getHeader();
         int timespan = (int) (prev.getTimeSeconds() - blockIntervalAgo.getTimeSeconds());
         // Limit the adjustment step.
         final int targetTimespan = this.getTargetTimespan();

@@ -37,18 +37,18 @@ public class HeadersMessage extends Message {
     // The main client will never send us more than this number of headers.
     public static final int MAX_HEADERS = 2000;
 
-    private List<Block> blockHeaders;
+    private List<BlockHeader> blockHeaders;
 
     public HeadersMessage(NetworkParameters params, byte[] payload) throws ProtocolException {
         super(params, payload, 0);
     }
 
-    public HeadersMessage(NetworkParameters params, Block... headers) throws ProtocolException {
+    public HeadersMessage(NetworkParameters params, BlockHeader... headers) throws ProtocolException {
         super(params);
         blockHeaders = Arrays.asList(headers);
     }
 
-    public HeadersMessage(NetworkParameters params, List<Block> headers) throws ProtocolException {
+    public HeadersMessage(NetworkParameters params, List<BlockHeader> headers) throws ProtocolException {
         super(params);
         blockHeaders = headers;
     }
@@ -56,8 +56,8 @@ public class HeadersMessage extends Message {
     @Override
     public void bitcoinSerializeToStream(OutputStream stream) throws IOException {
         stream.write(new VarInt(blockHeaders.size()).encode());
-        for (Block header : blockHeaders) {
-            header.cloneAsHeader().bitcoinSerializeToStream(stream);
+        for (BlockHeader header : blockHeaders) {
+            header.bitcoinSerializeToStream(stream);
             stream.write(0);
         }
     }
@@ -69,15 +69,17 @@ public class HeadersMessage extends Message {
             throw new ProtocolException("Too many headers: got " + numHeaders + " which is larger than " +
                                          MAX_HEADERS);
 
-        blockHeaders = new ArrayList<Block>();
+        blockHeaders = new ArrayList<BlockHeader>();
         final BitcoinSerializer serializer = this.params.getSerializer(true);
 
         for (int i = 0; i < numHeaders; ++i) {
-            final Block newBlockHeader = serializer.makeBlock(payload, cursor, UNKNOWN_LENGTH);
-            if (newBlockHeader.hasTransactions()) {
+            final BlockHeader newBlockHeader = serializer.makeBlockHeader(payload, cursor, UNKNOWN_LENGTH);
+            cursor += newBlockHeader.optimalEncodingMessageSize;
+            // Headers messages contain a zero-byte after each header to indicate number of transactions
+            long transactionCount = readVarInt();
+            if (transactionCount != 0) {
                 throw new ProtocolException("Block header does not end with a null byte");
             }
-            cursor += newBlockHeader.optimalEncodingMessageSize;
             blockHeaders.add(newBlockHeader);
         }
 
@@ -92,7 +94,7 @@ public class HeadersMessage extends Message {
         }
     }
 
-    public List<Block> getBlockHeaders() {
+    public List<BlockHeader> getBlockHeaders() {
         return blockHeaders;
     }
 }

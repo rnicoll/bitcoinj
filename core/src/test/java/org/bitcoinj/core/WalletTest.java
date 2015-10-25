@@ -1118,7 +1118,7 @@ public class WalletTest extends TestWithWallet {
         Transaction t2 = createFakeTx(params, v2, myAddress);
         Transaction t3 = createFakeTx(params, v3, myAddress);
 
-        Block genesis = blockStore.getChainHead().getHeader();
+        BlockHeader genesis = blockStore.getChainHead().getHeader();
         Block b10 = makeSolvedTestBlock(genesis, t1);
         Block b11 = makeSolvedTestBlock(genesis, t2);
         Block b2 = makeSolvedTestBlock(b10, t3);

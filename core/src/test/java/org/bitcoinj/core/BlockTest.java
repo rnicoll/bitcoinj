@@ -119,8 +119,8 @@ public class BlockTest {
     @Test
     public void testHeaderParse() throws Exception {
         Block block = params.getDefaultSerializer().makeBlock(blockBytes);
-        Block header = block.cloneAsHeader();
-        Block reparsed = params.getDefaultSerializer().makeBlock(header.bitcoinSerialize());
+        BlockHeader header = block.cloneAsHeader();
+        BlockHeader reparsed = params.getDefaultSerializer().makeBlockHeader(header.bitcoinSerialize());
         assertEquals(reparsed, header);
     }
 

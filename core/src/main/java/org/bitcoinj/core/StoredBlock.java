@@ -42,11 +42,17 @@ public class StoredBlock {
     public static final byte[] EMPTY_BYTES = new byte[CHAIN_WORK_BYTES];
     public static final int COMPACT_SERIALIZED_SIZE = Block.HEADER_SIZE + CHAIN_WORK_BYTES + 4;  // for height
 
-    private Block header;
+    private BlockHeader header;
     private BigInteger chainWork;
     private int height;
 
-    public StoredBlock(Block header, BigInteger chainWork, int height) {
+    public StoredBlock(Block block, BigInteger chainWork, int height) {
+        this.header = block.cloneAsHeader();
+        this.chainWork = chainWork;
+        this.height = height;
+    }
+
+    public StoredBlock(BlockHeader header, BigInteger chainWork, int height) {
         this.header = header;
         this.chainWork = chainWork;
         this.height = height;
@@ -55,7 +61,7 @@ public class StoredBlock {
     /**
      * The block header this object wraps. The referenced block object must not have any transactions in it.
      */
-    public Block getHeader() {
+    public BlockHeader getHeader() {
         return header;
     }
 
@@ -97,11 +103,18 @@ public class StoredBlock {
      * Creates a new StoredBlock, calculating the additional fields by adding to the values in this block.
      */
     public StoredBlock build(Block block) throws VerificationException {
+        return build(block.cloneAsHeader());
+    }
+
+    /**
+     * Creates a new StoredBlock, calculating the additional fields by adding to the values in this block.
+     */
+    public StoredBlock build(BlockHeader block) throws VerificationException {
         // Stored blocks track total work done in this chain, because the canonical chain is the one that represents
         // the largest amount of work done not the tallest.
         BigInteger chainWork = this.chainWork.add(block.getWork());
         int height = this.height + 1;
-        return new StoredBlock(block, chainWork, height);
+        return new StoredBlock(block.cloneAsHeader(), chainWork, height);
     }
 
     /**
@@ -138,7 +151,7 @@ public class StoredBlock {
         int height = buffer.getInt();  // +4 bytes
         byte[] header = new byte[Block.HEADER_SIZE + 1];    // Extra byte for the 00 transactions length.
         buffer.get(header, 0, Block.HEADER_SIZE);
-        return new StoredBlock(params.getDefaultSerializer().makeBlock(header), chainWork, height);
+        return new StoredBlock(params.getDefaultSerializer().makeBlockHeader(header, 0, Block.HEADER_SIZE), chainWork, height);
     }
 
     @Override

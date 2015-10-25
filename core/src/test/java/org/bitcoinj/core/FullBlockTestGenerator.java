@@ -116,8 +116,8 @@ class UTXORule extends Rule {
 class RuleList {
     public List<Rule> list;
     public int maximumReorgBlockCount;
-    Map<Sha256Hash, Block> hashHeaderMap;
-    public RuleList(List<Rule> list, Map<Sha256Hash, Block> hashHeaderMap, int maximumReorgBlockCount) {
+    Map<Sha256Hash, BlockHeader> hashHeaderMap;
+    public RuleList(List<Rule> list, Map<Sha256Hash, BlockHeader> hashHeaderMap, int maximumReorgBlockCount) {
         this.list = list;
         this.hashHeaderMap = hashHeaderMap;
         this.maximumReorgBlockCount = maximumReorgBlockCount;
@@ -133,7 +133,7 @@ public class FullBlockTestGenerator {
     // Used to double-check that we are always using the right next-height
     private Map<Sha256Hash, Integer> blockToHeightMap = new HashMap<Sha256Hash, Integer>();
 
-    private Map<Sha256Hash, Block> hashHeaderMap = new HashMap<Sha256Hash, Block>();
+    private Map<Sha256Hash, BlockHeader> hashHeaderMap = new HashMap<Sha256Hash, BlockHeader>();
     private Map<Sha256Hash, Sha256Hash> coinbaseBlockMap = new HashMap<Sha256Hash, Sha256Hash>();
 
     public FullBlockTestGenerator(NetworkParameters params) {

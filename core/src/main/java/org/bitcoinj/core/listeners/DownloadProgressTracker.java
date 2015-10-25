@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.*;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
+import org.bitcoinj.core.AbstractBlockHeader;
 
 /**
  * <p>An implementation of {@link AbstractPeerDataEventListener} that listens to chain download events and tracks progress
@@ -59,7 +60,7 @@ public class DownloadProgressTracker extends AbstractPeerDataEventListener {
     }
 
     @Override
-    public void onBlocksDownloaded(Peer peer, Block block, @Nullable FilteredBlock filteredBlock, int blocksLeft) {
+    public void onBlocksDownloaded(Peer peer, AbstractBlockHeader block, @Nullable FilteredBlock filteredBlock, int blocksLeft) {
         if (caughtUp)
             return;
 

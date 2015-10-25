@@ -152,7 +152,7 @@ public class PeerGroup implements TransactionBroadcaster {
         }
 
         @Override
-        public void onBlocksDownloaded(Peer peer, Block block, @Nullable FilteredBlock filteredBlock, int blocksLeft) {
+        public void onBlocksDownloaded(Peer peer, AbstractBlockHeader block, @Nullable FilteredBlock filteredBlock, int blocksLeft) {
             if (chain == null) return;
             final double rate = chain.getFalsePositiveRate();
             final double target = bloomFilterMerger.getBloomFilterFPRate() * MAX_FP_RATE_INCREASE;
@@ -1655,22 +1655,12 @@ public class PeerGroup implements TransactionBroadcaster {
         private boolean syncDone;
 
         @Override
-        public synchronized void onBlocksDownloaded(Peer peer, Block block, @Nullable FilteredBlock filteredBlock, int blocksLeft) {
+        public synchronized void onBlocksDownloaded(Peer peer, AbstractBlockHeader block, @Nullable FilteredBlock filteredBlock, int blocksLeft) {
             blocksInLastSecond++;
-            bytesInLastSecond += Block.HEADER_SIZE;
-            List<Transaction> blockTransactions = block.getTransactions();
-            // This whole area of the type hierarchy is a mess.
-            int txCount = (blockTransactions != null ? countAndMeasureSize(blockTransactions) : 0) +
-                          (filteredBlock != null ? countAndMeasureSize(filteredBlock.getAssociatedTransactions().values()) : 0);
-            txnsInLastSecond = txnsInLastSecond + txCount;
+            bytesInLastSecond += block.getOptimalEncodingMessageSize();
+            txnsInLastSecond = txnsInLastSecond + block.getTransactionCount();
             if (filteredBlock != null)
                 origTxnsInLastSecond += filteredBlock.getTransactionCount();
-        }
-
-        private int countAndMeasureSize(Collection<Transaction> transactions) {
-            for (Transaction transaction : transactions)
-                bytesInLastSecond += transaction.getMessageSize();
-            return transactions.size();
         }
 
         @Override

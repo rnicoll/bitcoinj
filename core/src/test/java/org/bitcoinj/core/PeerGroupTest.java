@@ -789,7 +789,7 @@ public class PeerGroupTest extends TestWithPeerGroup {
         // Make some transactions and blocks that send money to the wallet thus using up all the keys.
         List<Block> blocks = Lists.newArrayList();
         Coin expectedBalance = Coin.ZERO;
-        Block prev = blockStore.getChainHead().getHeader();
+        AbstractBlockHeader prev = blockStore.getChainHead().getHeader();
         for (ECKey key1 : keys) {
             Address addr = key1.toAddress(params);
             Block next = FakeTxBuilder.makeSolvedTestBlock(prev, FakeTxBuilder.createFakeTx(params, Coin.FIFTY_COINS, addr));

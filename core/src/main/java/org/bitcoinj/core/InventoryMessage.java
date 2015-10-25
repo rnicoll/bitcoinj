@@ -51,7 +51,7 @@ public class InventoryMessage extends ListMessage {
         super(params);
     }
 
-    public void addBlock(Block block) {
+    public void addBlock(AbstractBlockHeader block) {
         addItem(new InventoryItem(InventoryItem.Type.Block, block.getHash()));
     }
 
