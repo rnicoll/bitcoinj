@@ -580,7 +580,8 @@ public class Peer extends PeerSocketHandler {
         try {
             checkState(!downloadBlockBodies, toString());
             for (int i = 0; i < m.getBlockHeaders().size(); i++) {
-                Block header = m.getBlockHeaders().get(i);
+                BlockHeader header = m.getBlockHeaders().get(i);
+                Block block = new Block(header);
                 // Process headers until we pass the fast catchup time, or are about to catch up with the head
                 // of the chain - always process the last block as a full/filtered block to kick us out of the
                 // fast catchup mode (in which we ignore new blocks).
@@ -592,9 +593,9 @@ public class Peer extends PeerSocketHandler {
                         log.info("Lost download peer status, throwing away downloaded headers.");
                         return;
                     }
-                    if (blockChain.add(header)) {
+                    if (blockChain.add(block)) {
                         // The block was successfully linked into the chain. Notify the user of our progress.
-                        invokeOnBlocksDownloaded(header, null);
+                        invokeOnBlocksDownloaded(block, null);
                     } else {
                         // This block is unconnected - we don't know how to get from it back to the genesis block yet.
                         // That must mean that the peer is buggy or malicious because we specifically requested for
@@ -989,7 +990,7 @@ public class Peer extends PeerSocketHandler {
 
             if (blockChain.add(m)) {
                 // The block was successfully linked into the chain. Notify the user of our progress.
-                invokeOnBlocksDownloaded(m.getBlockHeader(), m);
+                invokeOnBlocksDownloaded(new Block(m.getBlockHeader()), m);
             } else {
                 // This block is an orphan - we don't know how to get from it back to the genesis block yet. That
                 // must mean that there are blocks we are missing, so do another getblocks with a new block locator

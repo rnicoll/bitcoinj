@@ -174,12 +174,12 @@ public class ParseByteCacheTest {
         assertTrue(Arrays.equals(bos.toByteArray(), blockBytes));
         
         // check retain status survive both before and after a serialization
-        assertEquals(retain, b1.isHeaderBytesValid());
+        assertEquals(retain, b1.getHeader().isHeaderBytesValid());
         assertEquals(retain, b1.isTransactionBytesValid());
         
         serDeser(bs, b1, blockBytes, null, null);
         
-        assertEquals(retain, b1.isHeaderBytesValid());
+        assertEquals(retain, b1.getHeader().isHeaderBytesValid());
         assertEquals(retain, b1.isTransactionBytesValid());
         
         // compare to ref block
@@ -234,7 +234,7 @@ public class ParseByteCacheTest {
         // change a value in header
         b1.setNonce(23);
         bRef.setNonce(23);
-        assertFalse(b1.isHeaderBytesValid());
+        assertFalse(b1.getHeader().isHeaderBytesValid());
         assertEquals(retain , b1.isTransactionBytesValid());
         // does it still match ref block?
         bos.reset();
@@ -285,7 +285,7 @@ public class ParseByteCacheTest {
                 // this has to be false. Altering a tx invalidates the merkle root.
                 // when we have seperate merkle caching then the entire header won't need to be
                 // invalidated.
-                assertFalse(b1.isHeaderBytesValid());
+                assertFalse(b1.getHeader().isHeaderBytesValid());
                 
                 bos.reset();
                 bsRef.serialize(bRef, bos);

@@ -144,9 +144,8 @@ public class BitcoinSerializerTest {
 
         // The first block after the genesis
         // http://blockexplorer.com/b/1
-        Block block = headersMessage.getBlockHeaders().get(0);
+        BlockHeader block = headersMessage.getBlockHeaders().get(0);
         assertEquals("00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048", block.getHashAsString());
-        assertNotNull(block.transactions);
         assertEquals("0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098", Utils.HEX.encode(block.getMerkleRoot().getBytes()));
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -182,14 +181,14 @@ public class BitcoinSerializerTest {
 
         // index 0 block is the number 1 block in the block chain
         // http://blockexplorer.com/b/1
-        Block zeroBlock = headersMessage.getBlockHeaders().get(0);
+        BlockHeader zeroBlock = headersMessage.getBlockHeaders().get(0);
         assertEquals("00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048",
                 zeroBlock.getHashAsString());
         assertEquals(2573394689L, zeroBlock.getNonce());
 
         // index 3 block is the number 4 block in the block chain
         // http://blockexplorer.com/b/4
-        Block thirdBlock = headersMessage.getBlockHeaders().get(3);
+        BlockHeader thirdBlock = headersMessage.getBlockHeaders().get(3);
         assertEquals("000000004ebadb55ee9096c9a2f8880e09da59c0d68b1c228da88e48844a1485",
                 thirdBlock.getHashAsString());
         assertEquals(2850094635L, thirdBlock.getNonce());

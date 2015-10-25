@@ -104,10 +104,11 @@ public class BlockTest {
     public void testBadTransactions() throws Exception {
         Block block = params.getDefaultSerializer().makeBlock(blockBytes);
         // Re-arrange so the coinbase transaction is not first.
-        Transaction tx1 = block.transactions.get(0);
-        Transaction tx2 = block.transactions.get(1);
-        block.transactions.set(0, tx2);
-        block.transactions.set(1, tx1);
+        Transaction tx1 = block.getTransactions().get(0);
+        Transaction tx2 = block.getTransactions().get(1);
+        block.setTransactions(Arrays.asList(new Transaction[] {
+            tx2, tx1
+        }));
         try {
             block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
             fail();

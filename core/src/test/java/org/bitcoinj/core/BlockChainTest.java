@@ -189,7 +189,7 @@ public class BlockChainTest {
         assertTrue(testNetChain.add(getBlock1()));
         Block b2 = getBlock2();
         assertTrue(testNetChain.add(b2));
-        Block bad = new Block(testNet, Block.BLOCK_VERSION_GENESIS);
+        Block bad = new Block(new BlockHeader(testNet, Block.BLOCK_VERSION_GENESIS));
         // Merkle root can be anything here, doesn't matter.
         bad.setMerkleRoot(Sha256Hash.wrap("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
         // Nonce was just some number that made the hash < difficulty limit set below, it can be anything.
@@ -387,7 +387,7 @@ public class BlockChainTest {
 
     // Some blocks from the test net.
     private static Block getBlock2() throws Exception {
-        Block b2 = new Block(testNet, Block.BLOCK_VERSION_GENESIS);
+        Block b2 = new Block(new BlockHeader(testNet, Block.BLOCK_VERSION_GENESIS));
         b2.setMerkleRoot(Sha256Hash.wrap("addc858a17e21e68350f968ccd384d6439b64aafa6c193c8b9dd66320470838b"));
         b2.setNonce(2642058077L);
         b2.setTime(1296734343L);
@@ -398,7 +398,7 @@ public class BlockChainTest {
     }
 
     private static Block getBlock1() throws Exception {
-        Block b1 = new Block(testNet, Block.BLOCK_VERSION_GENESIS);
+        Block b1 = new Block(new BlockHeader(testNet, Block.BLOCK_VERSION_GENESIS));
         b1.setMerkleRoot(Sha256Hash.wrap("0e8e58ecdacaa7b3c6304a35ae4ffff964816d2b80b62b58558866ce4e648c10"));
         b1.setNonce(236038445);
         b1.setTime(1296734340);

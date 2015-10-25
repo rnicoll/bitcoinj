@@ -271,6 +271,15 @@ public class BitcoinSerializer extends MessageSerializer {
     }
 
     /**
+     * Make a block from the payload. Extension point for alternative
+     * serialization format support.
+     */
+    @Override
+    public BlockHeader makeBlockHeader(final byte[] payloadBytes, final int offset, final int length) throws ProtocolException {
+        return new BlockHeader(params, payloadBytes, offset, this, length);
+    }
+
+    /**
      * Make an filter message from the payload. Extension point for alternative
      * serialization format support.
      */

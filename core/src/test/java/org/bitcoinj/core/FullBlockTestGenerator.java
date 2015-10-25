@@ -518,7 +518,7 @@ public class FullBlockTestGenerator {
         NewBlock b31 = createNextBlock(b30, chainHeadHeight + 9, out8, null);
         {
             int sigOps = 0;
-            for (Transaction tx : b31.block.transactions) {
+            for (Transaction tx : b31.block.getTransactions()) {
                 sigOps += tx.getSigOpCount();
             }
             Transaction tx = new Transaction(params);
@@ -538,7 +538,7 @@ public class FullBlockTestGenerator {
         NewBlock b32 = createNextBlock(b31, chainHeadHeight + 10, out9, null);
         {
             int sigOps = 0;
-            for (Transaction tx : b32.block.transactions) {
+            for (Transaction tx : b32.block.getTransactions()) {
                 sigOps += tx.getSigOpCount();
             }
             Transaction tx = new Transaction(params);
@@ -556,7 +556,7 @@ public class FullBlockTestGenerator {
         NewBlock b33 = createNextBlock(b31, chainHeadHeight + 10, out9, null);
         {
             int sigOps = 0;
-            for (Transaction tx : b33.block.transactions) {
+            for (Transaction tx : b33.block.getTransactions()) {
                 sigOps += tx.getSigOpCount();
             }
             Transaction tx = new Transaction(params);
@@ -890,7 +890,7 @@ public class FullBlockTestGenerator {
         TransactionOutPointWithValue out14 = spendableOutputs.poll();
 
         // A valid block created exactly like b44 to make sure the creation itself works
-        Block b44 = new Block(params, Block.BLOCK_VERSION_GENESIS);
+        Block b44 = new Block(new BlockHeader(params, Block.BLOCK_VERSION_GENESIS));
         byte[] outScriptBytes = ScriptBuilder.createOutputScript(ECKey.fromPublicOnly(coinbaseOutKeyPubKey)).getProgram();
         {
             b44.setDifficultyTarget(b43.block.getDifficultyTarget());
@@ -914,7 +914,7 @@ public class FullBlockTestGenerator {
         TransactionOutPointWithValue out15 = spendableOutputs.poll();
 
         // A block with a non-coinbase as the first tx
-        Block b45 = new Block(params, Block.BLOCK_VERSION_GENESIS);
+        Block b45 = new Block(new BlockHeader(params, Block.BLOCK_VERSION_GENESIS));
         {
             b45.setDifficultyTarget(b44.getDifficultyTarget());
             //b45.addCoinbaseTransaction(pubKey, coinbaseValue);
@@ -940,9 +940,9 @@ public class FullBlockTestGenerator {
         blocks.add(new BlockAndValidity(b45, false, true, b44.getHash(), chainHeadHeight + 15, "b45"));
 
         // A block with no txn
-        Block b46 = new Block(params, Block.BLOCK_VERSION_GENESIS);
+        Block b46 = new Block(new BlockHeader(params, Block.BLOCK_VERSION_GENESIS));
         {
-            b46.transactions = new ArrayList<Transaction>();
+            b46.setTransactions(new ArrayList<Transaction>());
             b46.setDifficultyTarget(b44.getDifficultyTarget());
             b46.setMerkleRoot(Sha256Hash.ZERO_HASH);
 

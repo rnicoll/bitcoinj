@@ -246,13 +246,13 @@ public class ChainSplitTest {
         // Test the standard case in which a block containing identical transactions appears on a side chain.
         Block b1 = unitTestParams.getGenesisBlock().createNextBlock(coinsTo);
         chain.add(b1);
-        final Transaction t = b1.transactions.get(1);
+        final Transaction t = b1.getTransactions().get(1);
         assertEquals(FIFTY_COINS, wallet.getBalance());
         // genesis -> b1
         //         -> b2
         Block b2 = unitTestParams.getGenesisBlock().createNextBlock(coinsTo);
-        Transaction b2coinbase = b2.transactions.get(0);
-        b2.transactions.clear();
+        Transaction b2coinbase = b2.getTransactions().get(0);
+        b2.clearTransactions();
         b2.addTransaction(b2coinbase);
         b2.addTransaction(t);
         b2.solve();
@@ -284,7 +284,7 @@ public class ChainSplitTest {
         // genesis -> b1 -> b3
         //         -> b2
         Block b3 = b1.createNextBlock(someOtherGuy);
-        b3.addTransaction(b2.transactions.get(1));
+        b3.addTransaction(b2.getTransactions().get(1));
         b3.solve();
         chain.add(roundtrip(b3));
         assertEquals(FIFTY_COINS, wallet.getBalance());
@@ -543,6 +543,9 @@ public class ChainSplitTest {
         wallet = Wallet.loadFromFileStream(new ByteArrayInputStream(bos.toByteArray()));
         final Block b2 = FakeTxBuilder.makeSolvedTestBlock(b1, t2, t3);
         final Block b3 = FakeTxBuilder.makeSolvedTestBlock(b2);
+        assertNotNull(b1.getTransactions());
+        assertNotNull(b2.getTransactions());
+        assertNotNull(b3.getTransactions());
         chain.add(b2);
         chain.add(b3);
 

@@ -29,7 +29,7 @@ import java.util.*;
 public class FilteredBlock extends Message {
     /** The protocol version at which Bloom filtering started to be supported. */
     public static final int MIN_PROTOCOL_VERSION = 70000;
-    private Block header;
+    private BlockHeader header;
 
     private PartialMerkleTree merkleTree;
     private List<Sha256Hash> cachedTransactionHashes = null;
@@ -42,7 +42,7 @@ public class FilteredBlock extends Message {
         super(params, payloadBytes, 0);
     }
 
-    public FilteredBlock(NetworkParameters params, Block header, PartialMerkleTree pmt) {
+    public FilteredBlock(NetworkParameters params, BlockHeader header, PartialMerkleTree pmt) {
         super(params);
         this.header = header;
         this.merkleTree = pmt;
@@ -50,22 +50,17 @@ public class FilteredBlock extends Message {
 
     @Override
     public void bitcoinSerializeToStream(OutputStream stream) throws IOException {
-        if (header.transactions == null)
-            header.bitcoinSerializeToStream(stream);
-        else
-            header.cloneAsHeader().bitcoinSerializeToStream(stream);
+        header.bitcoinSerializeToStream(stream);
         merkleTree.bitcoinSerializeToStream(stream);
     }
 
     @Override
     protected void parse() throws ProtocolException {
-        byte[] headerBytes = new byte[Block.HEADER_SIZE];
-        System.arraycopy(payload, 0, headerBytes, 0, Block.HEADER_SIZE);
-        header = params.getDefaultSerializer().makeBlock(headerBytes);
+        header = params.getDefaultSerializer().makeBlockHeader(payload, cursor, Message.UNKNOWN_LENGTH);
+        cursor += header.getOptimalEncodingMessageSize();
+        merkleTree = new PartialMerkleTree(params, payload, cursor);
         
-        merkleTree = new PartialMerkleTree(params, payload, Block.HEADER_SIZE);
-        
-        length = Block.HEADER_SIZE + merkleTree.getMessageSize();
+        length = header.getOptimalEncodingMessageSize() + merkleTree.getMessageSize();
     }
     
     /**
@@ -87,8 +82,8 @@ public class FilteredBlock extends Message {
     /**
      * Gets a copy of the block header
      */
-    public Block getBlockHeader() {
-        return header.cloneAsHeader();
+    public BlockHeader getBlockHeader() {
+        return header;
     }
     
     /** Gets the hash of the block represented in this Filtered Block */

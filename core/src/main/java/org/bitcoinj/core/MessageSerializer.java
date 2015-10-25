@@ -87,6 +87,8 @@ public abstract class MessageSerializer {
      */
     public abstract Block makeBlock(final byte[] payloadBytes, final int offset, final int length) throws ProtocolException, UnsupportedOperationException;
 
+    public abstract BlockHeader makeBlockHeader(final byte[] payload, final int offset, final int length) throws ProtocolException, UnsupportedOperationException;
+
     /**
      * Make an filter message from the payload. Extension point for alternative
      * serialization format support.
